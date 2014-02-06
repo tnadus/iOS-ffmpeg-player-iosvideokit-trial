@@ -1,0 +1,21 @@
+*** ./libavformat/udp.c	2013-03-28 14:00:26.000000000 +0200
+--- ./libavformat/udp-m.c	2013-03-28 14:00:58.000000000 +0200
+***************
+*** 49,56 ****
+  #define IPV6_DROP_MEMBERSHIP IPV6_LEAVE_GROUP
+  #endif
+  
+! #define UDP_TX_BUF_SIZE 32768
+! #define UDP_MAX_PKT_SIZE 65536
+  
+  typedef struct {
+      int udp_fd;
+--- 49,56 ----
+  #define IPV6_DROP_MEMBERSHIP IPV6_LEAVE_GROUP
+  #endif
+  
+! #define UDP_TX_BUF_SIZE 327680
+! #define UDP_MAX_PKT_SIZE 655360
+  
+  typedef struct {
+      int udp_fd;

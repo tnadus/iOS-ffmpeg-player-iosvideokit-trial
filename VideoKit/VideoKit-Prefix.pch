@@ -1,0 +1,9 @@
+//
+// Prefix header for all source files of the 'VideoKit' target in the 'VideoKit' project
+//
+
+#ifdef __OBJC__
+#import <UIKit/UIKit.h>
+#import <Foundation/Foundation.h>
+
+#endif
