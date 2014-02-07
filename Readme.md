@@ -1,4 +1,4 @@
-VideoKit is a powerful video player & streamer written in Objective-C for iOS App Developers!
+VideoKit
 ===
 
 Apple's video player and streamer solutions are very limited, supporting only specific video file formats, HTTP streaming and the h264 video codec. The source code powering the player and streamer is proprietary and it renders the task of streaming a very difficult one.
