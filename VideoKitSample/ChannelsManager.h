@@ -2,8 +2,9 @@
 //  ChannelsManager.h
 //  VideoKitSample
 //
-//  Created by Tarum Nadus on 26.10.2013.
-//  Copyright (c) 2013 VideoKit. All rights reserved.
+//  Created by Murat Sudan
+//  Copyright (c) 2014 iOS VideoKit. All rights reserved.
+//  Elma DIGITAL
 //
 
 #import <foundation/Foundation.h>
@@ -13,7 +14,10 @@
 
 + (id)sharedManager;
 
+- (void)updateChannelList;
+
 @property(nonatomic, readonly) NSMutableArray *streamList;
 @property(nonatomic, readonly) NSMutableArray *fileList;
+@property(nonatomic, readonly) NSMutableArray *recordList;
 
 @end

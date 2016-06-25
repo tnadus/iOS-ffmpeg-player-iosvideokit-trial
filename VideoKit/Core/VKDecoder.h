@@ -2,11 +2,15 @@
 //  VKDecoder.h
 //  VideoKit
 //
-//  Created by Tarum Nadus on 31.12.2013-2014.
-//  Copyright (c) 2013-2014 VideoKit. All rights reserved.
+//  Created by Murat Sudan
+//  Copyright (c) 2014 iOS VideoKit. All rights reserved.
+//  Elma DIGITAL
 //
 
 #import <Foundation/Foundation.h>
+#import "VKDecodeManager.h"
+#import "VKQueue.h"
+
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
@@ -14,28 +18,23 @@
 #include <libavutil/opt.h>
 #include <pthread.h>
 
+@class VKClock;
+
 /**
  *  Base class of VKAudioDecoder & VKVideoDecoder classes. It holds common ffmpeg related datas such as CodecContext, AVCodec, etc...
  */
-@interface VKDecoder : NSObject {
+@interface VKDecoder : VKQueue {
     AVCodecContext* _codecContext;
     AVCodec* _codec;
     AVStream* _stream;
     NSInteger _streamId;
-
-    NSMutableArray *_pktQueue;/* queue including encoded data packets */
-    long _pktQueueSize; /** queue size */
-
-    //mutex
-    pthread_mutex_t _mutexPkt;
-    pthread_cond_t _condPkt;
-
-    //manager
+    
+    //managers
     id _manager;
-
-    AVPacket _flushPkt;
-    int _queueSerial;
-    int _abortRequest;
+    id _clockManager;
+    
+    int _ffmpegVersMajor;
+    VKClock *_decoderClock;
 }
 
 /* init with codec context */
@@ -51,47 +50,12 @@
  */
 - (id)initWithCodecContext:(AVCodecContext*)cdcCtx stream:(AVStream *)strm streamId:(NSInteger)sId manager:(id)manager;
 
-/**
- *  Queues are interworking with eachother and uses wait mechanism for management, this methods unlocks all queues
- */
-- (void)unlockQueues;
-
-/**
- *  Adds raw data media packet
- *
- *  @param packet FFmpeg's AVPacket structured object is needed
- */
-- (void)addPacket:(AVPacket*)packet;
-
-/**
- *  Adds a special packet to flush queues
- */
-- (void)addFlushPkt;
-
-/**
- *  Clear buffers
- */
-- (void)clearPktQueue;
-
-///Mutex for managing packet processing priority
-- (pthread_mutex_t*)mutexPkt;
-
-///Condition for managing packet processing priority
-- (pthread_cond_t*)condPkt;
-
-///A mutable array that holds VKPacket objects
-@property (nonatomic, readonly) NSMutableArray *pktQueue;
-
-///The size of pktQueue array
-@property (nonatomic, readonly) long pktQueueSize;
-
 ///The stream index in streams list in FFmpeg
 @property (nonatomic, readonly) NSInteger streamId;
 
 ///VKDecodeManager object, used for retrieving global states
 @property (nonatomic, readonly) id manager;
 
-///A special property to stop all jobs to kill decoder properly
-@property (nonatomic, assign) int abortRequest;
+@property (nonatomic, readonly) VKClock *decoderClock;
 
 @end

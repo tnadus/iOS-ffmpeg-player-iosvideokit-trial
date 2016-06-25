@@ -2,13 +2,13 @@
 //  VKAudioDecoder.h
 //  VideoKit
 //
-//  Created by Tarum Nadus on 11/16/12.
-//  Copyright (c) 2013-2014 VideoKit. All rights reserved.
+//  Created by Murat Sudan
+//  Copyright (c) 2014 iOS VideoKit. All rights reserved.
+//  Elma DIGITAL
 //
 
 #import <Foundation/Foundation.h>
 #import "VKDecoder.h"
-#import "VKDecodeManager.h"
 
 /**
  *  VKAudioDecoder is responsible for decoding & resampling of audio packets, and making audio effects
@@ -27,8 +27,8 @@
  *
  *  @return VKAudioDecoder object
  */
-- (id)initWithCodecContext:(AVCodecContext*)cdcCtx
-stream:(AVStream *)strm streamId:(NSInteger)sId manager:(id)manager;
+- (id)initWithFormatContext:(AVFormatContext*)avFmtCtx codecContext:(AVCodecContext*)cdcCtx
+                     stream:(AVStream *)strm streamId:(NSInteger)sId manager:(id)manager;
 
 /**
  *  Shutdown audio decoder
@@ -41,21 +41,14 @@ stream:(AVStream *)strm streamId:(NSInteger)sId manager:(id)manager;
 - (void)unlockQueues;
 
 /**
- *  Indicates the last Audio packet's presenting timestamp value based on stream's time base
- *
- *  @return pts (presenting time stamp) * stream->time_base
+ *  Start AUGraph
  */
-- (double)audioClock;
+- (void)startAUGraph;
 
 /**
- *  Start Audio Unit
+ *  Stop AUGraph
  */
-- (void)startUnit;
-
-/**
- *  Stop Audio Unit
- */
-- (void)stopUnit;
+- (void)stopAUGraph;
 
 /**
  *  Start Audio Subsystem
@@ -92,7 +85,11 @@ stream:(AVStream *)strm streamId:(NSInteger)sId manager:(id)manager;
  */
 @property (nonatomic, assign) float volumeLevel;
 
-///AudioUnit subsystem instance
-- (AudioComponentInstance)audioUnit;
+/**
+ * This is a channel panning effect which must be between -1.0 (all audio is routed to left channel)
+ * and +1.0 (all audio is routed to right channel),
+ * default value is 0.0 which means no panning (audio is routed to both left & right channels)
+ */
+@property (nonatomic, assign) float panningLevel;
 
 @end

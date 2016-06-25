@@ -2,110 +2,23 @@
 //  VKPlayerViewController.m
 //  VideoKit
 //
-//  Created by Tarum Nadus on 11/16/12.
-//  Copyright (c) 2013-2014 VideoKit. All rights reserved.
+//  Created by Murat Sudan
+//  Copyright (c) 2014 iOS VideoKit. All rights reserved.
+//  Elma DIGITAL
 //
 
+#if __has_feature(objc_arc)
+#error iOS VideoKit is Non-ARC only. Either turn off ARC for the project or use -fobjc-no-arc flag on source files (Targets -> Build Phases -> Compile Sources)
+#endif
+
 #import "VKPlayerController.h"
-#import <QuartzCore/QuartzCore.h>
-
-@interface VKFullscreenContainer : UIViewController {
-    VKPlayerController *_playerController;
-    UIView *_superviewBefore;
-    CGRect _rectBefore;
-    UIViewAutoresizing _autoresizingMaskBefore;
-}
-
-- (id)initWithPlayerController:(VKPlayerController *)player;
-- (void)onDismissWithAnimated:(BOOL)animated;
-
-@end
-
-@implementation VKFullscreenContainer
-
-- (id)initWithPlayerController:(VKPlayerController *)player {
-    self = [super init];
-    if (self) {
-        self.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
-        _playerController = [player retain];
-        _rectBefore = [player.view frame];
-        _superviewBefore = [[player.view superview] retain];
-        _autoresizingMaskBefore = [player.view autoresizingMask];
-    }
-    return self;
-}
-
-#pragma mark - View Life Cycle
-
-- (void) loadView {
-    CGRect bounds = [[UIScreen mainScreen] applicationFrame];
-
-    if (UIInterfaceOrientationIsLandscape([[UIDevice currentDevice] orientation])) {
-        bounds =  CGRectMake(bounds.origin.x, bounds.origin.y, bounds.size.height, bounds.size.width);
-    }
-    self.view = [[[UIView alloc] initWithFrame:bounds] autorelease];
-    self.view.backgroundColor = [_playerController backgroundColor];
-}
-
-- (void)viewDidLoad {
-    [super viewDidLoad];
-    _playerController.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    _playerController.view.frame = self.view.bounds;
-    [self.view addSubview:_playerController.view];
-}
-
-- (void)viewWillAppear:(BOOL)animated {
-    [super viewWillAppear:animated];
-}
-
-#pragma mark - Private Methods
-
-- (void)onDismissWithAnimated:(BOOL)animated {
-    float duration = (animated) ? 0.5 : 0.0;
-    [UIView animateWithDuration:duration animations:^{
-        _playerController.view.autoresizingMask = _autoresizingMaskBefore;
-        _playerController.view.frame = _rectBefore;
-    } completion:^(BOOL finished) {
-        [self dismissViewControllerAnimated:NO completion:^{
-            [_playerController.view removeFromSuperview];
-            [_superviewBefore addSubview:_playerController.view];
-        }];
-    }];
-}
-
-#pragma mark - Orientation
-
-- (NSUInteger) supportedInterfaceOrientations {
-    return UIInterfaceOrientationMaskAllButUpsideDown;
-}
-
-- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
-{
-    return (interfaceOrientation != UIInterfaceOrientationPortraitUpsideDown);
-}
-
-- (void)dealloc {
-    [_superviewBefore release];
-    [_playerController release];
-    [super dealloc];
-}
-
-@end
-
-
-#pragma mark - VKPlayerController
-
-
 #import "VKGLES2View.h"
 #import "VKStreamInfoView.h"
+#import "VKFullscreenContainer.h"
 
 #import <MediaPlayer/MediaPlayer.h>
 
-/* VKPlayer Fullscreen mode changed notifications */
-NSString *kVKPlayerWillEnterFullscreenNotification = @"VKPlayerWillEnterFullscreenNotification";
-NSString *kVKPlayerDidEnterFullscreenNotification = @"VKPlayerDidEnterFullscreenNotification";
-NSString *kVKPlayerWillExitFullscreenNotification = @"VKPlayerWillExitFullscreenNotification";
-NSString *kVKPlayerDidExitFullscreenNotification = @"VKPlayerDidExitFullscreenNotification";
+#pragma mark - VKPlayerController
 
 #define BAR_BUTTON_TAG_DONE             1000
 #define BAR_BUTTON_TAG_SCALE            1001
@@ -114,21 +27,20 @@ NSString *kVKPlayerDidExitFullscreenNotification = @"VKPlayerDidExitFullscreenNo
 #define PANEL_BUTTON_TAG_INFO           2002
 #define PANEL_BUTTON_TAG_FULLSCREEN     2003
 
-static NSString * errorText(VKError errCode);
+#ifdef VK_RECORDING_CAPABILITY
+#define PANEL_BUTTON_TAG_RECORD         2004
+#endif
 
-@interface VKPlayerController ()<VKDecoderDelegate, AVAudioSessionDelegate> {
+
+
+@interface VKPlayerController ()<AVAudioSessionDelegate> {
+
 
     MPVolumeView *_sliderVolume;
-    
     //UI elements & controls for fullscreen
     UIActivityIndicatorView *_activityIndicator;
     UILabel *_labelBarTitle;
     UIToolbar *_toolBar;
-    UIBarButtonItem *_barButtonDone;
-    UIBarButtonItem *_barButtonSpaceLeft;
-    UIBarButtonItem *_barButtonContainer;
-    UIBarButtonItem *_barButtonSpaceRight;
-    UIBarButtonItem *_barButtonScale;
     UIView *_viewCenteredOnBar;
 
     UIView *_viewControlPanel;
@@ -136,12 +48,15 @@ static NSString * errorText(VKError errCode);
     UILabel *_labelElapsedTime;
     UIButton *_buttonPanelPP;
     UIButton *_buttonPanelInfo;
+#ifdef VK_RECORDING_CAPABILITY
+    UIButton *_buttonPanelRecord;
+#endif
     UIImageView *_imgViewSpeaker;
 
     UILabel *_labelStreamCurrentTime;
     UILabel *_labelStreamTotalDuration;
     UISlider *_sliderCurrentDuration;
-
+    
     //UI elements & controls for embedded view
     UIActivityIndicatorView *_activityIndicatorEmbedded;
     UIView *_viewBarEmbedded;
@@ -153,7 +68,7 @@ static NSString * errorText(VKError errCode);
     UILabel *_labelStreamCurrentTimeEmbedded;
     UILabel *_labelStreamTotalDurationEmbedded;
     UISlider *_sliderCurrentDurationEmbedded;
-    UIButton *_buttonScaleEmbedded;
+    UIButton *_buttonFullScreenEmbedded;
 
     UILabel *_labelStatusEmbedded;
 
@@ -162,58 +77,14 @@ static NSString * errorText(VKError errCode);
     UIImage *_imgSliderMax;
     UIImage *_imgSliderThumb;
     
-    UIImageView *_imgViewAudioOnly;
     UIImageView *_imgViewExternalScreen;
-
-    //UI elements
-    VKStreamInfoView *_viewInfo;
-
-    UIView *_view;
-    VKGLES2View *_renderView;
-
-    NSString *_barTitle;
-    BOOL _statusBarHidden;
-    BOOL _statusBarHiddenBefore;
-    BOOL _sliderDurationCurrentTouched;
-
-    //Gesture recognizers
-    UITapGestureRecognizer *_doubleTapGestureRecognizer;
-    UITapGestureRecognizer *_singleTapGestureRecognizer;
-    UIPinchGestureRecognizer *_pinchGestureRecognizer;
-
-    UITapGestureRecognizer *_closeInfoViewGestureRecognizer;
-
-    //Timers & timer controls
-    BOOL _panelIsHidden;
-    NSTimer *_timerPanelHidden;
-
-    NSTimer *_timerElapsedTime;
-    int _elapsedTime;
-
-    NSTimer *_timerInfoViewUpdate;
-
-    NSTimer *_timerDuration;
-    float _durationCurrent;
-    float _durationTotal;
-
-    //Container & screens
-    UIViewController *_containerVc;
-    BOOL _mainScreenIsMobile;
-    BOOL _allowsAirPlay;
-
-    //stream related
-    NSString *_contentURLString;
-    VKAVDecodeManager *_decodeManager;
-    NSDictionary *_decodeOptions;
-    VKDecoderState _decoderState;
-
-    //for controlling play/stop actions
-    dispatch_queue_t _playStopQueue;
-    BOOL _playingIsInProgress;
-    BOOL _stoppingIsInPlaying;
     
-    //snapshot
-    BOOL _snapshotReadyToGet;
+    //Gestures
+    UITapGestureRecognizer *_closeInfoViewGestureRecognizer;
+    UILongPressGestureRecognizer *_longGestureRecognizer;
+
+    //Status bar properties
+    BOOL _statusBarHiddenBefore;
 }
 
 @property (nonatomic, retain) UIWindow *extWindow;
@@ -226,95 +97,47 @@ static NSString * errorText(VKError errCode);
 
 @implementation VKPlayerController
 
-@synthesize barTitle = _barTitle;
-@synthesize statusBarHidden = _statusBarHidden;
-@synthesize containerVc = _containerVc;
-@synthesize decoderState = _decoderState;
-@synthesize contentURLString = _contentURLString;
-@synthesize decoderOptions = _decodeOptions;
-@synthesize fullScreen = _fullScreen;
 @synthesize controlStyle = _controlStyle;
-@synthesize initialPlaybackTime = _initialPlaybackTime;
-@synthesize loopPlayback = _loopPlayback;
-@synthesize autoStopAtEnd = _autoStopAtEnd;
-@synthesize allowsAirPlay = _allowsAirPlay;
-@synthesize delegate = _delegate;
-@synthesize renderView = _renderView;
-@synthesize backgroundColor = _backgroundColor;
 
 #pragma mark Initialization
 
 - (id)init {
-    self = [super init];
+    self = [super initBase];
     if (self) {
-        // Custom initialization
-        _panelIsHidden = NO;
-        _statusBarHidden = NO;
-        _statusBarHiddenBefore = NO;
-
-        _fullScreen = NO;
-        _controlStyle = kVKPlayerControlStyleEmbedded;
-        _initialPlaybackTime = 0.0;
-        _loopPlayback = 1;
-        _allowsAirPlay = NO;
-
-        _playingIsInProgress = NO;
-        _stoppingIsInPlaying = NO;
-        _playStopQueue = dispatch_queue_create("play_stop_lock", NULL);
-        
-        _snapshotReadyToGet = NO;
-
-        [self createUI];
-
+        [self prepare];
         return self;
     }
     return nil;
 }
 
 - (id)initWithURLString:(NSString *)urlString {
-
-    self = [self init];
+    self = [super initWithURLString:urlString];
     if (self) {
-        // Custom initialization
-        [self setContentURLString:urlString];
-        return self;
+        [self prepare];
     }
-    return nil;
+    return self;
 }
 
-- (void)setContentURLString:(NSString *)urlString {
-    _decoderState = kVKDecoderStateNone;
-    if(!urlString) urlString = @"http://url.is.null";
-    
-    if (_contentURLString) {
-        [_contentURLString release];
-        _contentURLString = nil;
-    }
-    _contentURLString = [urlString retain];
-    _barTitle = [[urlString lastPathComponent] retain];
+- (void)prepare {
+    // Custom initialization
+    _panelIsHidden = NO;
+    _statusBarHidden = NO;
+    _statusBarHiddenBefore = NO;
+    _controlStyle = kVKPlayerControlStyleEmbedded;
+    [self createUI];
 }
 
 #pragma mark Subviews management
 
 - (void)createUI
 {
-    _backgroundColor = [[UIColor blackColor] retain];
-    
-    CGRect bounds = [[UIScreen mainScreen] applicationFrame];
-
-    if (UIInterfaceOrientationIsLandscape([[UIDevice currentDevice] orientation])) {
-        bounds =  CGRectMake( 0.0f, 0.0f, bounds.size.height, bounds.size.width);
-    } else {
-        bounds =  CGRectMake( 0.0f, 0.0f, bounds.size.width, bounds.size.height);
-    }
-
-    _view = [[UIView alloc] initWithFrame:bounds];
+    _view = [[UIView alloc] initWithFrame:CGRectZero];
     self.view.backgroundColor = _backgroundColor;
-
+    
     _imgSliderMin = [[[UIImage imageNamed:@"VKImages.bundle/vk-track-unfilled.png"] resizableImageWithCapInsets:UIEdgeInsetsMake(5, 5, 5, 5)] retain];
     _imgSliderMax = [[[UIImage imageNamed:@"VKImages.bundle/vk-track-filled.png"] resizableImageWithCapInsets:UIEdgeInsetsMake(5, 5, 5, 5)] retain];
     _imgSliderThumb = [[UIImage imageNamed:@"VKImages.bundle/vk-track-knob.png"] retain];
-
+    
     [self createUIFullScreen];
     [self createUIEmbedded];
     [self createUICenter];
@@ -329,132 +152,98 @@ static NSString * errorText(VKError errCode);
 
 - (void)createUIFullScreenBar {
     /* Toolbar on top: _toolBar */
-    float viewWidth = self.view.bounds.size.width;
-    _toolBar = [[UIToolbar alloc] initWithFrame:CGRectMake(0.0, 0.0, viewWidth, 44.0)];
-    _toolBar.autoresizesSubviews = YES;
-    _toolBar.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleBottomMargin;
-    _toolBar.barStyle = UIBarStyleBlackTranslucent;
-
+    _toolBar = [[UIToolbar alloc] initWithFrame:CGRectZero];
+    _toolBar.translatesAutoresizingMaskIntoConstraints = NO;
+    _toolBar.barStyle = UIBarStyleDefault;
+    _toolBar.tintColor = [UIColor darkGrayColor];
+    
     NSMutableArray *toolBarItems = [NSMutableArray array];
-
-    /* Toolbar on top: _barButtonDone */
-    _barButtonDone = [[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(onBarButtonsTapped:)] autorelease];
-    _barButtonDone.style = UIBarButtonItemStylePlain;
-    _barButtonDone.tag = BAR_BUTTON_TAG_DONE;
+    
+    UIButton *buttonDone = [[[UIButton alloc] init] autorelease];
+    buttonDone.translatesAutoresizingMaskIntoConstraints = NO;
+    [buttonDone setTitle:TR(@"Done") forState:UIControlStateNormal];
+    [[buttonDone titleLabel] setFont:[UIFont boldSystemFontOfSize:16.0]];
+    [buttonDone setTitleColor:[UIColor darkGrayColor] forState:UIControlStateNormal];
+    [buttonDone setTitleColor:[UIColor lightGrayColor] forState:UIControlStateHighlighted];
+    [buttonDone addTarget:self action:@selector(onBarButtonsTapped:) forControlEvents:UIControlEventTouchUpInside];
+    [buttonDone setTag:BAR_BUTTON_TAG_DONE];
+    UIBarButtonItem *_barButtonDone = [[[UIBarButtonItem alloc] initWithCustomView:buttonDone] autorelease];
+    
     [toolBarItems addObject:_barButtonDone];
-
+    
     /* Toolbar on top: _barButtonSpaceLeft */
-    _barButtonSpaceLeft = [[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil] autorelease];
+    UIBarButtonItem *_barButtonSpaceLeft = [[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil] autorelease];
     [toolBarItems addObject:_barButtonSpaceLeft];
-
+    
     /* Toolbar on top: _viewCenteredOnBar */
-    _viewCenteredOnBar = [[[UIView alloc] initWithFrame:CGRectMake(0.0, 6.0, viewWidth - 100, 33.0)] autorelease];
-    _viewCenteredOnBar.autoresizesSubviews = YES;
-    _viewCenteredOnBar.autoresizingMask =  UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleBottomMargin;
+    _viewCenteredOnBar = [[[UIView alloc] initWithFrame:CGRectZero] autorelease];
+    _viewCenteredOnBar.translatesAutoresizingMaskIntoConstraints = NO;
     _viewCenteredOnBar.backgroundColor = [UIColor clearColor];
-
+    
     float heightSubviewOnBar = 21.0;
+    float wStrmTimeLabelsOnBar = 40.0;
+    
     /* Toolbar on top: _labelBarTitle */
-    _labelBarTitle = [[[UILabel alloc] initWithFrame:CGRectMake(0.0, 6.0, _viewCenteredOnBar.frame.size.width, heightSubviewOnBar)] autorelease];
-    _labelBarTitle.autoresizesSubviews = YES;
-    _labelBarTitle.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleBottomMargin;
-    _labelBarTitle.contentMode = UIViewContentModeCenter;
-
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
-    if ([[[UIDevice currentDevice] systemVersion] compare:@"6.0" options:NSNumericSearch] != NSOrderedAscending) {
-        //running on iOS 6.0 or higher
-        _labelBarTitle.lineBreakMode = NSLineBreakByTruncatingTail;
-        _labelBarTitle.minimumScaleFactor = 0.3;
-        _labelBarTitle.textAlignment = NSTextAlignmentCenter;
-    } else {
-        //running on iOS 5.x
-#if __IPHONE_OS_VERSION_MIN_REQUIRED < 60000
-        _labelBarTitle.lineBreakMode = UILineBreakModeTailTruncation;
-        _labelBarTitle.minimumFontSize = 10.0;
-        _labelBarTitle.textAlignment = UITextAlignmentCenter;
-#endif
-    }
-#else
-    _labelBarTitle.lineBreakMode = UILineBreakModeTailTruncation;
-    _labelBarTitle.minimumFontSize = 10.0;
-    _labelBarTitle.textAlignment = UITextAlignmentCenter;
-#endif
-
+    _labelBarTitle = [[[UILabel alloc] initWithFrame:CGRectZero] autorelease];
+    _labelBarTitle.translatesAutoresizingMaskIntoConstraints = NO;
+    _labelBarTitle.lineBreakMode = NSLineBreakByTruncatingTail;
+    _labelBarTitle.minimumScaleFactor = 0.3;
+    _labelBarTitle.textAlignment = NSTextAlignmentCenter;
     _labelBarTitle.contentMode = UIViewContentModeLeft;
     _labelBarTitle.numberOfLines = 1;
-    _labelBarTitle.opaque = YES;
     _labelBarTitle.backgroundColor = [UIColor clearColor];
     _labelBarTitle.shadowOffset = CGSizeMake(0.0, -1.0);
-    _labelBarTitle.textColor = [UIColor colorWithRed:0.906 green:0.906 blue:0.906 alpha:1.000];
+    _labelBarTitle.textColor = [UIColor darkGrayColor];
     _labelBarTitle.font = [UIFont fontWithName:@"HelveticaNeue" size:18];
-    _labelBarTitle.text = _barTitle;
+    _labelBarTitle.text = [self staturBarInitialText];
     [_viewCenteredOnBar addSubview:_labelBarTitle];
-
+    
     /* Toolbar on top: _activityIndicator */
-    _activityIndicator = [[[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite] autorelease];
-    _activityIndicator.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleBottomMargin;
-    _activityIndicator.frame = CGRectMake((_viewCenteredOnBar.frame.size.width + 120.0)/2.0, 7.0, 20.0, 20.0);
+    _activityIndicator = [[[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray] autorelease];
+    _activityIndicator.translatesAutoresizingMaskIntoConstraints = NO;
     _activityIndicator.hidesWhenStopped = YES;
     _activityIndicator.backgroundColor = [UIColor clearColor];
     [_viewCenteredOnBar addSubview:_activityIndicator];
-
+    
     /* Current & total duration of stream labels */
-    float wStrmTimeLabelsOnBar = 40.0;
     float marginX = 8.0;
-    _labelStreamCurrentTime = [[[UILabel alloc] initWithFrame:CGRectMake(marginX, 6.0, wStrmTimeLabelsOnBar, heightSubviewOnBar)] autorelease];
-    _labelStreamCurrentTime.autoresizingMask = UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleBottomMargin;
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
-    if ([[[UIDevice currentDevice] systemVersion] compare:@"6.0" options:NSNumericSearch] != NSOrderedAscending) {
-        //running on iOS 6.0 or higher
-        _labelStreamCurrentTime.textAlignment = NSTextAlignmentCenter;
-    } else {
-        //running on iOS 5.x
-#if __IPHONE_OS_VERSION_MIN_REQUIRED < 60000
-        _labelStreamCurrentTime.textAlignment = UITextAlignmentCenter;
-#endif
-    }
-#else
-    _labelStreamCurrentTime.textAlignment = UITextAlignmentCenter;
-#endif
+    _labelStreamCurrentTime = [[[UILabel alloc] initWithFrame:CGRectZero] autorelease];
+    _labelStreamCurrentTime.translatesAutoresizingMaskIntoConstraints = NO;
+    _labelStreamCurrentTime.textAlignment = NSTextAlignmentCenter;
     _labelStreamCurrentTime.text = @"00:00";
     _labelStreamCurrentTime.numberOfLines = 1;
     _labelStreamCurrentTime.opaque = NO;
     _labelStreamCurrentTime.backgroundColor = [UIColor clearColor];
-    _labelStreamCurrentTime.textColor = [UIColor whiteColor];
+    if ([[[UIDevice currentDevice] systemVersion] compare:@"7.0" options:NSNumericSearch] != NSOrderedAscending) {
+        //running on iOS 7.0 or higher
+        _labelStreamCurrentTime.textColor = [UIColor darkGrayColor];
+    } else {
+        _labelStreamCurrentTime.textColor = [UIColor whiteColor];
+    }
     _labelStreamCurrentTime.font = [UIFont fontWithName:@"HelveticaNeue" size:13.0];
     _labelStreamCurrentTime.hidden = YES;
     [_viewCenteredOnBar addSubview:_labelStreamCurrentTime];
-
+    
     /* labelStreamTotalDuration */
     _labelStreamTotalDuration = [[[UILabel alloc] initWithFrame:CGRectMake(_viewCenteredOnBar.frame.size.width - wStrmTimeLabelsOnBar - marginX, 6.0, wStrmTimeLabelsOnBar, heightSubviewOnBar)] autorelease];
-    _labelStreamTotalDuration.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleBottomMargin;
-
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
-    if ([[[UIDevice currentDevice] systemVersion] compare:@"6.0" options:NSNumericSearch] != NSOrderedAscending) {
-        //running on iOS 6.0 or higher
-        _labelStreamTotalDuration.textAlignment = NSTextAlignmentCenter;
-    } else {
-        //running on iOS 5.x
-#if __IPHONE_OS_VERSION_MIN_REQUIRED < 60000
-        _labelStreamTotalDuration.textAlignment = UITextAlignmentCenter;
-#endif
-    }
-#else
-    _labelStreamTotalDuration.textAlignment = UITextAlignmentRight;
-#endif
-
+    _labelStreamTotalDuration.translatesAutoresizingMaskIntoConstraints = NO;
+    _labelStreamTotalDuration.textAlignment = NSTextAlignmentCenter;
     _labelStreamTotalDuration.numberOfLines = 1;
     _labelStreamTotalDuration.opaque = NO;
     _labelStreamTotalDuration.backgroundColor = [UIColor clearColor];
-    _labelStreamTotalDuration.textColor = [UIColor whiteColor];
+    if ([[[UIDevice currentDevice] systemVersion] compare:@"7.0" options:NSNumericSearch] != NSOrderedAscending) {
+        //running on iOS 7.0 or higher
+        _labelStreamTotalDuration.textColor = [UIColor darkGrayColor];
+    } else {
+        _labelStreamTotalDuration.textColor = [UIColor whiteColor];
+    }
     _labelStreamTotalDuration.font = [UIFont fontWithName:@"HelveticaNeue" size:13.0];
     _labelStreamTotalDuration.hidden = YES;
     [_viewCenteredOnBar addSubview:_labelStreamTotalDuration];
-
+    
     /* sliderCurrentDuration */
-    float widthSlider = _viewCenteredOnBar.frame.size.width - 2*wStrmTimeLabelsOnBar - 4*marginX;
-    _sliderCurrentDuration = [[[UISlider alloc] initWithFrame:CGRectMake(_labelStreamCurrentTime.frame.size.width + 2*marginX, 6.0, widthSlider, heightSubviewOnBar)] autorelease];
-    _sliderCurrentDuration.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleBottomMargin;
+    _sliderCurrentDuration = [[[UISlider alloc] initWithFrame:CGRectZero] autorelease];
+    _sliderCurrentDuration.translatesAutoresizingMaskIntoConstraints = NO;
     _sliderCurrentDuration.minimumValue = 0.0;
     _sliderCurrentDuration.value = 0.0;
     _sliderCurrentDuration.continuous = YES;
@@ -463,101 +252,190 @@ static NSString * errorText(VKError errCode);
     [_sliderCurrentDuration addTarget:self action:@selector(onSliderCurrentDurationTouchedOut:) forControlEvents:UIControlEventTouchUpOutside];
     [_sliderCurrentDuration addTarget:self action:@selector(onSliderCurrentDurationChanged:) forControlEvents:UIControlEventValueChanged];
     _sliderCurrentDuration.hidden = YES;
-    [_sliderCurrentDuration setMinimumTrackImage:_imgSliderMin forState:UIControlStateNormal];
-    [_sliderCurrentDuration setMaximumTrackImage:_imgSliderMax forState:UIControlStateNormal];
-    [_sliderCurrentDuration setThumbImage:_imgSliderThumb forState:UIControlStateNormal];
+    _labelStreamCurrentTime.textColor = [UIColor darkGrayColor];
     [_viewCenteredOnBar addSubview:_sliderCurrentDuration];
-
+    
     /* Toolbar on top: _barButtonContainer */
-    _barButtonContainer = [[[UIBarButtonItem alloc] initWithCustomView:_viewCenteredOnBar] autorelease];
+    UIBarButtonItem *_barButtonContainer = [[[UIBarButtonItem alloc] initWithCustomView:_viewCenteredOnBar] autorelease];
     [toolBarItems addObject:_barButtonContainer];
-
-    /* Toolbar on top: _barButtonSpaceRight */
-    _barButtonSpaceRight = [[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:NULL action:NULL] autorelease];
-    [toolBarItems addObject:_barButtonSpaceRight];
-
+    
+    /* Toolbar on top: _barButtonSpaceRightFlexible */
+    UIBarButtonItem *_barButtonSpaceRightFlexible = [[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:NULL action:NULL] autorelease];
+    [toolBarItems addObject:_barButtonSpaceRightFlexible];
+    
     /* Toolbar on top: _barButtonScale */
-    _barButtonScale = [[[UIBarButtonItem alloc] initWithTitle:@"" style:UIBarButtonItemStyleBordered target:self action:@selector(onBarButtonsTapped:)] autorelease];
-    _barButtonScale.tag = BAR_BUTTON_TAG_SCALE;
-    [toolBarItems addObject:_barButtonScale];
-
+    UIBarButtonItem *_barButtonSpaceRightFixed = [[[UIBarButtonItem alloc] initWithTitle:@"      " style:UIBarButtonItemStylePlain target:NULL action:NULL] autorelease];
+    [toolBarItems addObject:_barButtonSpaceRightFixed];
+    
     [_toolBar setItems:toolBarItems];
-
-    /* set the images */
-    [_barButtonScale setImage:[UIImage imageNamed:@"VKImages.bundle/vk-bar-button-zoom-out.png"]];
+    
+    //Set Autolayout constraints for bar elements
+    NSDictionary *metricsBarSubviews = @{@"bar_subview_height": @(heightSubviewOnBar), @"bar_time_label_width": @(wStrmTimeLabelsOnBar)};
+    
+    // align _labelBarTitle from the left and right
+    [_viewCenteredOnBar addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-0-[_labelBarTitle]-0-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_labelBarTitle)]];
+    // align _labelBarTitle from the top
+    [_viewCenteredOnBar addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-6-[_labelBarTitle(==bar_subview_height)]" options:0 metrics:metricsBarSubviews views:NSDictionaryOfVariableBindings(_labelBarTitle)]];
+    
+    // align _activityIndicator center with superview
+    CGSize textSizeTitle = [_labelBarTitle.text sizeWithAttributes:@{NSFontAttributeName:[_labelBarTitle font]}];
+    float leftMarginActivityIndicator = 15.0;
+    [_viewCenteredOnBar addConstraint:[NSLayoutConstraint constraintWithItem:_activityIndicator attribute:NSLayoutAttributeCenterX relatedBy:NSLayoutRelationEqual toItem:_viewCenteredOnBar attribute:NSLayoutAttributeCenterX multiplier:1.0 constant:-(textSizeTitle.width/2.0 + leftMarginActivityIndicator)]];
+    // align _activityIndicator from the top
+    [_viewCenteredOnBar addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-7-[_activityIndicator]" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_activityIndicator)]];
+    
+    // align _viewCenteredOnBar from the left and right
+    [_toolBar addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-62-[_viewCenteredOnBar]-62-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_viewCenteredOnBar)]];
+    // align _viewCenteredOnBar from the top
+    [_toolBar addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-6-[_viewCenteredOnBar]" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_viewCenteredOnBar)]];
+    // _viewCenteredOnBar height constraint
+    [_toolBar addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[_viewCenteredOnBar(==33)]" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_viewCenteredOnBar)]];
+    
+    // align buttonDone from the left and right
+    [_toolBar addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-4-[buttonDone(==44)]" options:0 metrics:nil views:NSDictionaryOfVariableBindings(buttonDone)]];
+    // align buttonDone from the top
+    [_toolBar addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-6-[buttonDone(==33)]" options:0 metrics:nil views:NSDictionaryOfVariableBindings(buttonDone)]];
+    
+    // align _labelStreamCurrentTime from the top
+    [_viewCenteredOnBar addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-6-[_labelStreamCurrentTime(==bar_subview_height)]" options:0 metrics:metricsBarSubviews views:NSDictionaryOfVariableBindings(_labelStreamCurrentTime)]];
+    
+    // align subviews of viewCenteredOnBar from the left & top
+    [_viewCenteredOnBar addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-8-[_labelStreamCurrentTime(==bar_time_label_width)]-4-[_sliderCurrentDuration]-4-[_labelStreamTotalDuration(==bar_time_label_width)]-8-|" options:NSLayoutFormatAlignAllCenterY metrics:metricsBarSubviews views:NSDictionaryOfVariableBindings(_labelStreamCurrentTime, _sliderCurrentDuration, _labelStreamTotalDuration)]];
 }
 
 - (void)createUIFullScreenPanel {
     /* Control panel: _viewControlPanel */
-    int mrgnBtPanel = 8.0;
-    int hPanel = 93.0;
-    int wPanel = 314.0;
-    int yPanel = self.view.bounds.size.height - hPanel - mrgnBtPanel;
-    int xPanel = (self.view.bounds.size.width - wPanel)/2.0;
-
-    _viewControlPanel = [[UIView alloc] initWithFrame:CGRectMake(xPanel, yPanel, wPanel, hPanel)];
-    _viewControlPanel.autoresizingMask = UIViewAutoresizingFlexibleTopMargin |
-    UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleLeftMargin;
-    _viewControlPanel.contentMode = UIViewContentModeCenter;
-    _viewControlPanel.backgroundColor = [UIColor clearColor];
-
-    /* Control panel: _imgViewControlPanel */
-    _imgViewControlPanel = [[[UIImageView alloc] initWithFrame:CGRectMake(0.0, 0.0, 314.0, 93.0)] autorelease];
-    _imgViewControlPanel.autoresizingMask = UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleTopMargin;
-    _imgViewControlPanel.contentMode = UIViewContentModeCenter;
-    _imgViewControlPanel.backgroundColor = [UIColor clearColor];
-    [_viewControlPanel addSubview:_imgViewControlPanel];
-
+    _viewControlPanel = [[UIView alloc] initWithFrame:CGRectZero];
+    _viewControlPanel.translatesAutoresizingMaskIntoConstraints = NO;
+    
+    if ([[[UIDevice currentDevice] systemVersion] compare:@"8.0" options:NSNumericSearch] != NSOrderedAscending) {
+        //running on iOS 8.0 or higher
+        if (!UIAccessibilityIsReduceTransparencyEnabled()) {
+            _viewControlPanel.backgroundColor = [UIColor clearColor];
+            
+            UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleExtraLight];
+            UIVisualEffectView *blurEffectView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
+            blurEffectView.translatesAutoresizingMaskIntoConstraints = NO;
+            [_viewControlPanel addSubview:blurEffectView];
+            
+            // align blurEffectView from the left and right
+            [_viewControlPanel addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-0-[blurEffectView]-0-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(blurEffectView)]];
+            
+            // align blurEffectView from the top and bottom
+            [_viewControlPanel addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-0-[blurEffectView]-0-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(blurEffectView)]];
+        }  
+        else {
+            _viewControlPanel.backgroundColor = [UIColor whiteColor];
+        }
+    } else {
+        _viewControlPanel.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.5];
+    }
+    
     /* Control panel: _buttonPanelPP */
-    _buttonPanelPP = [[[UIButton alloc] initWithFrame:CGRectMake(142.0, 13.0, 30.0, 27.0)] autorelease];
+    _buttonPanelPP = [[[UIButton alloc] initWithFrame:CGRectZero] autorelease];
+    _buttonPanelPP.translatesAutoresizingMaskIntoConstraints = NO;
     _buttonPanelPP.showsTouchWhenHighlighted = YES;
     _buttonPanelPP.tag = PANEL_BUTTON_TAG_PP_TOGGLE;
     [_buttonPanelPP addTarget:self action:@selector(onControlPanelButtonsTapped:) forControlEvents:UIControlEventTouchUpInside];
     [_viewControlPanel addSubview:_buttonPanelPP];
-
+    
+    // center _buttonPanelPP horizontally in _viewControlPanel
+    [_viewControlPanel addConstraint:[NSLayoutConstraint constraintWithItem:_buttonPanelPP attribute:NSLayoutAttributeCenterX relatedBy:NSLayoutRelationEqual toItem:_viewControlPanel attribute:NSLayoutAttributeCenterX multiplier:1.0 constant:0.0]];
+    
+    // align _buttonPanelPP from the top
+    [_viewControlPanel addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-13-[_buttonPanelPP(==27)]" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_buttonPanelPP)]];
+    
+    // width constraint
+    [_viewControlPanel addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[_buttonPanelPP(==30)]" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_buttonPanelPP)]];
+    
     /* Control panel: _buttonPanelInfo */
-    _buttonPanelInfo = [[[UIButton alloc] initWithFrame:CGRectMake(246.0, 11.0, 30.0, 30.0)] autorelease];
-    _buttonPanelInfo.autoresizingMask = UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleBottomMargin;
+    _buttonPanelInfo = [[[UIButton alloc] initWithFrame:CGRectZero] autorelease];
+    _buttonPanelInfo.translatesAutoresizingMaskIntoConstraints = NO;
     _buttonPanelInfo.showsTouchWhenHighlighted = YES;
-    _buttonPanelInfo.contentMode = UIViewContentModeCenter;
     _buttonPanelInfo.tag = PANEL_BUTTON_TAG_INFO;
     [_buttonPanelInfo addTarget:self action:@selector(onControlPanelButtonsTapped:) forControlEvents:UIControlEventTouchUpInside];
     [_viewControlPanel addSubview:_buttonPanelInfo];
-
+   
+    // align _buttonPanelInfo from the right
+    [_viewControlPanel addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[_buttonPanelInfo(==40)]-28-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_buttonPanelInfo)]];
+    
+    // align _buttonPanelInfo from the top
+    [_viewControlPanel addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-2-[_buttonPanelInfo(==40)]" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_buttonPanelInfo)]];
+    
+    int adjustmentIfNoRecord = 0;
+#ifdef VK_RECORDING_CAPABILITY
+    /* Control panel: _buttonPanelRecord */
+    adjustmentIfNoRecord = (_recordingEnabled) ? 50:0;
+    _buttonPanelRecord = [[[UIButton alloc] initWithFrame:CGRectZero] autorelease];
+    _buttonPanelRecord.imageEdgeInsets = UIEdgeInsetsMake(-8.0, -22.0, 0.0, 0.0);
+    _buttonPanelRecord.translatesAutoresizingMaskIntoConstraints = NO;
+    _buttonPanelRecord.showsTouchWhenHighlighted = YES;
+    _buttonPanelRecord.contentMode = UIViewContentModeCenter;
+    _buttonPanelRecord.tag = PANEL_BUTTON_TAG_RECORD;
+    _buttonPanelRecord.hidden = YES;
+    [_buttonPanelRecord setImage:[UIImage imageNamed:@"VKImages.bundle/vk-panel-button-record.png"] forState:UIControlStateNormal];
+    [_buttonPanelRecord addTarget:self action:@selector(onControlPanelButtonsTapped:) forControlEvents:UIControlEventTouchUpInside];
+    [_viewControlPanel addSubview:_buttonPanelRecord];
+    
+    // align _buttonPanelRecord from the right
+    [_viewControlPanel addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[_buttonPanelRecord(==64)]-4-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_buttonPanelRecord)]];
+    
+    // align _buttonPanelRecord from the top
+    [_viewControlPanel addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-44-[_buttonPanelRecord(==48)]" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_buttonPanelRecord)]];
+    
+#endif
+    
     /* Control panel: _imgViewSpeaker */
-    _imgViewSpeaker = [[[UIImageView alloc] initWithFrame:CGRectMake(20.0, 50.0, 21.0, 23.0)] autorelease];
-    _imgViewSpeaker.autoresizingMask = UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleBottomMargin;
+    _imgViewSpeaker = [[[UIImageView alloc] initWithFrame:CGRectZero] autorelease];
     [_viewControlPanel addSubview:_imgViewSpeaker];
-
+    _imgViewSpeaker.translatesAutoresizingMaskIntoConstraints = NO;
+    
+    // align _imgViewSpeaker from the left
+    [_viewControlPanel addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-20-[_imgViewSpeaker(==21)]" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_imgViewSpeaker)]];
+    
+    // align _imgViewSpeaker from the top
+    [_viewControlPanel addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-55-[_imgViewSpeaker(==23)]" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_imgViewSpeaker)]];
+    
     /* Control panel: _labelElapsedTime */
-    _labelElapsedTime = [[[UILabel alloc] initWithFrame:CGRectMake(20.0, 16.0, 64.0, 21.0)] autorelease];
-    _labelElapsedTime.autoresizingMask = UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleBottomMargin;
+    _labelElapsedTime = [[[UILabel alloc] initWithFrame:CGRectZero] autorelease];
+    _labelElapsedTime.translatesAutoresizingMaskIntoConstraints = NO;
     _labelElapsedTime.contentMode = UIViewContentModeLeft;
     _labelElapsedTime.text = @"00:00";
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
-    if ([[[UIDevice currentDevice] systemVersion] compare:@"6.0" options:NSNumericSearch] != NSOrderedAscending) {
-        //running on iOS 6.0 or higher
-        _labelElapsedTime.textAlignment = NSTextAlignmentLeft;
-    } else {
-        //running on iOS 5.x
-#if __IPHONE_OS_VERSION_MIN_REQUIRED < 60000
-        _labelElapsedTime.textAlignment = UITextAlignmentLeft;
-#endif
-    }
-#else
-    _labelElapsedTime.textAlignment = UITextAlignmentLeft;
-#endif
+    _labelElapsedTime.textAlignment = NSTextAlignmentLeft;
     _labelElapsedTime.backgroundColor = [UIColor clearColor];
     _labelElapsedTime.opaque = NO;
-    _labelElapsedTime.textColor = [UIColor colorWithRed:0.906 green:0.906 blue:0.906 alpha:1.000];
+    if ([[[UIDevice currentDevice] systemVersion] compare:@"7.0" options:NSNumericSearch] != NSOrderedAscending) {
+        //running on iOS 7.0 or higher
+        _labelElapsedTime.textColor = [UIColor darkGrayColor];
+    } else {
+        _labelElapsedTime.textColor = [UIColor colorWithRed:0.906 green:0.906 blue:0.906 alpha:1.000];
+    }
     _labelElapsedTime.font = [UIFont fontWithName:@"HelveticaNeue" size:16];
     [_viewControlPanel addSubview:_labelElapsedTime];
-
+    
+    // align _labelElapsedTime from the left
+    [_viewControlPanel addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-20-[_labelElapsedTime(==64)]" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_labelElapsedTime)]];
+    
+    // align _labelElapsedTime from the top
+    [_viewControlPanel addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-16-[_labelElapsedTime(==21)]" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_labelElapsedTime)]];
+    
     /* Control panel: _sliderVolume */
-    _sliderVolume = [[[MPVolumeView alloc] initWithFrame:CGRectMake(53.0, 51.0, 219.0, 23.0)] autorelease];
-    _sliderVolume.autoresizingMask = UIViewAutoresizingFlexibleWidth;
+    _sliderVolume = [[[MPVolumeView alloc] initWithFrame:CGRectZero] autorelease];
+    _sliderVolume.translatesAutoresizingMaskIntoConstraints = NO;
     [_viewControlPanel addSubview:_sliderVolume];
-
+    
+    // align _sliderVolume from the left
+    [_viewControlPanel addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-53-[_sliderVolume]" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_sliderVolume)]];
+    
+    // align _sliderVolume from the top
+    [_viewControlPanel addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-56-[_sliderVolume(==23)]" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_sliderVolume)]];
+    
+    // width constraint
+    NSLayoutConstraint *sliderVolumeConstraitWidth = [NSLayoutConstraint constraintWithItem:_sliderVolume attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:NULL attribute:NSLayoutAttributeNotAnAttribute multiplier:1.0 constant:(219.0 - adjustmentIfNoRecord)];
+    
+    sliderVolumeConstraitWidth.identifier = @"_sliderVolume-width";
+    [_viewControlPanel addConstraint:sliderVolumeConstraitWidth];
+    
     /* set the images */
     _imgViewControlPanel.image = [UIImage imageNamed:@"VKImages.bundle/vk-panel-bg.png"];
     _imgViewSpeaker.image = [UIImage imageNamed:@"VKImages.bundle/vk-panel-button-speaker.png"];
@@ -569,175 +447,115 @@ static NSString * errorText(VKError errCode);
     [self createUIEmbeddedBar];
     [self createUIEmbeddedPanel];
 
-    int hLabel = 30.0;
-    int wLabel = 120.0;
-    int yLabel = (self.view.bounds.size.height - hLabel)/2.0;
-    int xLabel = (self.view.bounds.size.width - wLabel)/2.0;
-
-    _labelStatusEmbedded = [[UILabel alloc] initWithFrame:CGRectMake(xLabel, yLabel, wLabel, hLabel)];
-    _labelStatusEmbedded.autoresizingMask =  UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin| UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleLeftMargin;
+    _labelStatusEmbedded = [[UILabel alloc] initWithFrame:CGRectZero];
+    _labelStatusEmbedded.translatesAutoresizingMaskIntoConstraints = NO;
     _labelStatusEmbedded.font = [UIFont fontWithName:@"HelveticaNeue" size:14];
     _labelStatusEmbedded.backgroundColor = [UIColor clearColor];
-    _labelStatusEmbedded.textColor = [UIColor whiteColor];
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
-    if ([[[UIDevice currentDevice] systemVersion] compare:@"6.0" options:NSNumericSearch] != NSOrderedAscending) {
-        //running on iOS 6.0 or higher
-        _labelStatusEmbedded.lineBreakMode = NSLineBreakByTruncatingTail;
-        _labelStatusEmbedded.minimumScaleFactor = 0.5;
-        _labelStatusEmbedded.textAlignment = NSTextAlignmentCenter;
-    } else {
-        //running on iOS 5.x
-#if __IPHONE_OS_VERSION_MIN_REQUIRED < 60000
-        _labelStatusEmbedded.lineBreakMode = UILineBreakModeTailTruncation;
-        _labelStatusEmbedded.minimumFontSize = 8.0;
-        _labelStatusEmbedded.textAlignment = UITextAlignmentCenter;
-#endif
-    }
-#else
-    _labelStatusEmbedded.lineBreakMode = UILineBreakModeTailTruncation;
-    _labelStatusEmbedded.minimumFontSize = 10.0;
-    _labelStatusEmbedded.textAlignment = UITextAlignmentCenter;
-#endif
+    _labelStatusEmbedded.textColor = [UIColor darkGrayColor];
+    _labelStatusEmbedded.lineBreakMode = NSLineBreakByTruncatingTail;
+    _labelStatusEmbedded.minimumScaleFactor = 0.5;
+    _labelStatusEmbedded.textAlignment = NSTextAlignmentCenter;
+    _labelStatusEmbedded.text = [self staturBarInitialText];
 }
 
 - (void)createUIEmbeddedBar {
     float viewWidth = self.view.bounds.size.width;
-    _viewBarEmbedded = [[UIView alloc] initWithFrame:CGRectMake(0.0, 0.0, viewWidth, 30.0)];
-    _viewBarEmbedded.autoresizingMask = UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleBottomMargin |
-    UIViewAutoresizingFlexibleWidth;
-    _viewBarEmbedded.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.32];
-
-    _labelBarEmbedded = [[[UILabel alloc] initWithFrame:CGRectMake(8.0, 0.0, viewWidth, 30.0)] autorelease];
-    _labelBarEmbedded.autoresizingMask =  UIViewAutoresizingFlexibleRightMargin |  UIViewAutoresizingFlexibleBottomMargin |  UIViewAutoresizingFlexibleWidth;
+    _viewBarEmbedded = [[UIView alloc] initWithFrame:CGRectZero];
+    _viewBarEmbedded.translatesAutoresizingMaskIntoConstraints = NO;
+    _viewBarEmbedded.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.6];
+    
+    _labelBarEmbedded = [[[UILabel alloc] initWithFrame:CGRectZero] autorelease];
+    _labelBarEmbedded.translatesAutoresizingMaskIntoConstraints = NO;
     _labelBarEmbedded.font = [UIFont fontWithName:@"HelveticaNeue" size:14];
     _labelBarEmbedded.backgroundColor = [UIColor clearColor];
-    _labelBarEmbedded.textColor = [UIColor whiteColor];
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
-    if ([[[UIDevice currentDevice] systemVersion] compare:@"6.0" options:NSNumericSearch] != NSOrderedAscending) {
-        //running on iOS 6.0 or higher
-        _labelBarEmbedded.lineBreakMode = NSLineBreakByTruncatingTail;
-        _labelBarEmbedded.minimumScaleFactor = 0.5;
-    } else {
-        //running on iOS 5.x
-#if __IPHONE_OS_VERSION_MIN_REQUIRED < 60000
-        _labelBarEmbedded.lineBreakMode = UILineBreakModeTailTruncation;
-        _labelBarEmbedded.minimumFontSize = 8.0;
-#endif
-    }
-#else
-    _labelBarEmbedded.lineBreakMode = UILineBreakModeTailTruncation;
-    _labelBarEmbedded.minimumFontSize = 10.0;
-#endif
+    _labelBarEmbedded.textColor = [UIColor darkGrayColor];
+    _labelBarEmbedded.lineBreakMode = NSLineBreakByTruncatingTail;
+    _labelBarEmbedded.minimumScaleFactor = 0.5;
     [_viewBarEmbedded addSubview:_labelBarEmbedded];
-
+    
+    // align _labelBarEmbedded from the left and right
+    [_viewBarEmbedded addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-8-[_labelBarEmbedded]-43-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_labelBarEmbedded)]];
+    // align _labelBarEmbedded from the top
+    [_viewBarEmbedded addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-0-[_labelBarEmbedded(==30)]" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_labelBarEmbedded)]];
+    
     float activityWidth = 20.0;
     float marginX = 8.0;
     _activityIndicatorEmbedded = [[[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite] autorelease];
-    _activityIndicatorEmbedded.frame = CGRectMake(viewWidth - (activityWidth + marginX), 5.0, activityWidth, activityWidth);
+    _activityIndicatorEmbedded.translatesAutoresizingMaskIntoConstraints = NO;
     _activityIndicatorEmbedded.hidesWhenStopped = YES;
-    _activityIndicatorEmbedded.autoresizingMask =  UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleBottomMargin;
     [_viewBarEmbedded addSubview:_activityIndicatorEmbedded];
+    
+    NSDictionary *metricsActivityIndicatorEmbedded = @{@"activity_indicator_embedded_right_margin": @((viewWidth - (activityWidth + marginX))), @"activity_indicator_embedded_width": @(activityWidth)};
+    // align _activityIndicatorEmbedded from the left
+    [_viewBarEmbedded addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[_activityIndicatorEmbedded]-8-|" options:0 metrics:metricsActivityIndicatorEmbedded views:NSDictionaryOfVariableBindings(_activityIndicatorEmbedded)]];
+    // align _activityIndicatorEmbedded from the top
+    [_viewBarEmbedded addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-5-[_activityIndicatorEmbedded]" options:0 metrics:metricsActivityIndicatorEmbedded views:NSDictionaryOfVariableBindings(_activityIndicatorEmbedded)]];
 
-    float labelElapsedWidth = 35.0;
-    _labelElapsedTimeEmbedded = [[[UILabel alloc] initWithFrame:CGRectMake(viewWidth - (labelElapsedWidth  + marginX), 3.0, labelElapsedWidth, 23.0)] autorelease];
-    _labelElapsedTimeEmbedded.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleBottomMargin;
+    _labelElapsedTimeEmbedded = [[[UILabel alloc] initWithFrame:CGRectZero] autorelease];
+    _labelElapsedTimeEmbedded.translatesAutoresizingMaskIntoConstraints = NO;
     _labelElapsedTimeEmbedded.text = @"00:00";
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
-    if ([[[UIDevice currentDevice] systemVersion] compare:@"6.0" options:NSNumericSearch] != NSOrderedAscending) {
-        //running on iOS 6.0 or higher
-        _labelElapsedTimeEmbedded.textAlignment = NSTextAlignmentCenter;
-    } else {
-        //running on iOS 5.x
-#if __IPHONE_OS_VERSION_MIN_REQUIRED < 60000
-        _labelElapsedTimeEmbedded.textAlignment = UITextAlignmentCenter;
-#endif
-    }
-#else
-    _labelElapsedTimeEmbedded.textAlignment = UITextAlignmentCenter;
-#endif
+    _labelElapsedTimeEmbedded.textAlignment = NSTextAlignmentCenter;
     _labelElapsedTimeEmbedded.backgroundColor = [UIColor clearColor];
-    _labelElapsedTimeEmbedded.textColor = [UIColor whiteColor];
+    _labelElapsedTimeEmbedded.textColor = [UIColor darkGrayColor];
     _labelElapsedTimeEmbedded.font = [UIFont fontWithName:@"HelveticaNeue" size:13];
     [_viewBarEmbedded addSubview:_labelElapsedTimeEmbedded];
+    
+    // align _labelElapsedTimeEmbedded from the right
+    [_viewBarEmbedded addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[_labelElapsedTimeEmbedded(==35)]-8-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_labelElapsedTimeEmbedded)]];
+    // align _labelElapsedTimeEmbedded from the top
+    [_viewBarEmbedded addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-3-[_labelElapsedTimeEmbedded(==23)]" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_labelElapsedTimeEmbedded)]];
 }
 
 - (void)createUIEmbeddedPanel {
-    float viewWidth = self.view.bounds.size.width;
+    
+    _viewControlPanelEmbedded = [[UIView alloc] initWithFrame:CGRectZero];
+    _viewControlPanelEmbedded.translatesAutoresizingMaskIntoConstraints = NO;
+    _viewControlPanelEmbedded.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.6];
+    
     float marginX = 8.0;
     float marginY = 3.0;
-
-    float viewPanelHeight = 30.0;
-    float viewPanelEmbeddedOriginY = self.view.bounds.size.height - viewPanelHeight;
-    _viewControlPanelEmbedded = [[UIView alloc] initWithFrame:CGRectMake(0.0, viewPanelEmbeddedOriginY, viewWidth, viewPanelHeight)];
-    _viewControlPanelEmbedded.autoresizingMask =  UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleWidth;
-    _viewControlPanelEmbedded.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.32];
-
     float buttonWidth = 24.0;
-    _buttonPanelPPEmbedded = [[[UIButton alloc] initWithFrame:CGRectMake(marginX, marginY, buttonWidth, buttonWidth)] autorelease];
-    _buttonPanelPPEmbedded.autoresizingMask = UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleBottomMargin;
+    float labelWidth = 35.0;
+    float labelHeight = 23.0;
+    
+    NSDictionary *metricsEmbeddedPanel = @{@"panel_embedded_x_margin": @(marginX), @"panel_embedded_y_margin": @(marginY),
+                                           @"button_panel_width" : @(buttonWidth),
+                                           @"label_width" : @(labelWidth), @"label_height" : @(labelHeight)};
+    
+    _buttonPanelPPEmbedded = [[[UIButton alloc] initWithFrame:CGRectZero] autorelease];
+    _buttonPanelPPEmbedded.translatesAutoresizingMaskIntoConstraints = NO;
     _buttonPanelPPEmbedded.showsTouchWhenHighlighted = YES;
     _buttonPanelPPEmbedded.tag = PANEL_BUTTON_TAG_PP_TOGGLE;
     _buttonPanelPPEmbedded.contentMode = UIViewContentModeCenter;
     [_buttonPanelPPEmbedded addTarget:self action:@selector(onControlPanelButtonsTapped:) forControlEvents:UIControlEventTouchUpInside];
     [_viewControlPanelEmbedded addSubview:_buttonPanelPPEmbedded];
-
-    float labelWidth = 35.0;
-    float labelHeight = 23.0;
-    _labelStreamCurrentTimeEmbedded = [[[UILabel alloc] initWithFrame:CGRectMake(36.0, marginY, labelWidth, labelHeight)] autorelease];
-    _labelStreamCurrentTimeEmbedded.autoresizingMask = UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleBottomMargin;
+    
+    _labelStreamCurrentTimeEmbedded = [[[UILabel alloc] initWithFrame:CGRectZero] autorelease];
+    _labelStreamCurrentTimeEmbedded.translatesAutoresizingMaskIntoConstraints = NO;
     _labelStreamCurrentTimeEmbedded.font = [UIFont fontWithName:@"HelveticaNeue" size:13];
     _labelStreamCurrentTimeEmbedded.backgroundColor = [UIColor clearColor];
-    _labelStreamCurrentTimeEmbedded.textColor = [UIColor whiteColor];
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
-    if ([[[UIDevice currentDevice] systemVersion] compare:@"6.0" options:NSNumericSearch] != NSOrderedAscending) {
-        //running on iOS 6.0 or higher
-        _labelStreamCurrentTimeEmbedded.textAlignment = NSTextAlignmentCenter;
-    } else {
-        //running on iOS 5.x
-#if __IPHONE_OS_VERSION_MIN_REQUIRED < 60000
-        _labelStreamCurrentTimeEmbedded.textAlignment = UITextAlignmentCenter;
-#endif
-    }
-#else
-    _labelStreamCurrentTimeEmbedded.textAlignment = UITextAlignmentCenter;
-#endif
+    _labelStreamCurrentTimeEmbedded.textColor = [UIColor darkGrayColor];
+    _labelStreamCurrentTimeEmbedded.textAlignment = NSTextAlignmentCenter;
     [_viewControlPanelEmbedded addSubview:_labelStreamCurrentTimeEmbedded];
+    
+    _buttonFullScreenEmbedded = [[[UIButton alloc] initWithFrame:CGRectZero] autorelease];
+    _buttonFullScreenEmbedded.translatesAutoresizingMaskIntoConstraints = NO;
+    _buttonFullScreenEmbedded.showsTouchWhenHighlighted = YES;
+    _buttonFullScreenEmbedded.tag = PANEL_BUTTON_TAG_FULLSCREEN;
+    _buttonFullScreenEmbedded.contentMode = UIViewContentModeCenter;
+    [_buttonFullScreenEmbedded addTarget:self action:@selector(onControlPanelButtonsTapped:) forControlEvents:UIControlEventTouchUpInside];
+    [_viewControlPanelEmbedded addSubview:_buttonFullScreenEmbedded];
 
-    float buttonScaleOriginX = viewWidth - (marginX + buttonWidth);
-    _buttonScaleEmbedded = [[[UIButton alloc] initWithFrame:CGRectMake(buttonScaleOriginX, marginY, buttonWidth, buttonWidth)] autorelease];
-    _buttonScaleEmbedded.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleBottomMargin;
-    _buttonScaleEmbedded.showsTouchWhenHighlighted = YES;
-    _buttonScaleEmbedded.tag = PANEL_BUTTON_TAG_FULLSCREEN;
-    _buttonScaleEmbedded.contentMode = UIViewContentModeCenter;
-    [_buttonScaleEmbedded addTarget:self action:@selector(onControlPanelButtonsTapped:) forControlEvents:UIControlEventTouchUpInside];
-    [_viewControlPanelEmbedded addSubview:_buttonScaleEmbedded];
-
-    float labelStreamDurationOriginX = _buttonScaleEmbedded.frame.origin.x - (2.0 + labelWidth);
-    _labelStreamTotalDurationEmbedded = [[[UILabel alloc] initWithFrame:CGRectMake(labelStreamDurationOriginX, marginY, labelWidth, labelHeight)] autorelease];
-    _labelStreamTotalDurationEmbedded.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleBottomMargin;
+    _labelStreamTotalDurationEmbedded = [[[UILabel alloc] initWithFrame:CGRectZero] autorelease];
+    _labelStreamTotalDurationEmbedded.translatesAutoresizingMaskIntoConstraints = NO;
     _labelStreamTotalDurationEmbedded.font = [UIFont fontWithName:@"HelveticaNeue" size:13];
     _labelStreamTotalDurationEmbedded.backgroundColor = [UIColor clearColor];
-    _labelStreamTotalDurationEmbedded.textColor = [UIColor whiteColor];
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
-    if ([[[UIDevice currentDevice] systemVersion] compare:@"6.0" options:NSNumericSearch] != NSOrderedAscending) {
-        //running on iOS 6.0 or higher
-        _labelStreamTotalDurationEmbedded.textAlignment = NSTextAlignmentCenter;
-    } else {
-        //running on iOS 5.x
-#if __IPHONE_OS_VERSION_MIN_REQUIRED < 60000
-        _labelStreamTotalDurationEmbedded.textAlignment = UITextAlignmentCenter;
-#endif
-    }
-#else
-    _labelStreamTotalDurationEmbedded.textAlignment = UITextAlignmentCenter;
-#endif
+    _labelStreamTotalDurationEmbedded.textColor = [UIColor darkGrayColor];
+    _labelStreamTotalDurationEmbedded.textAlignment = NSTextAlignmentCenter;
     [_viewControlPanelEmbedded addSubview:_labelStreamTotalDurationEmbedded];
-
-    float sliderOriginX = _labelStreamCurrentTimeEmbedded.frame.origin.x + _labelStreamCurrentTimeEmbedded.frame.size.width + marginX/2.0;
-    float sliderWidth = _labelStreamTotalDurationEmbedded.frame.origin.x - (_labelStreamCurrentTimeEmbedded.frame.origin.x + _labelStreamCurrentTimeEmbedded.frame.size.width) - marginX;
-    _sliderCurrentDurationEmbedded = [[[UISlider alloc] initWithFrame:CGRectMake(sliderOriginX, marginY, sliderWidth, labelHeight)] autorelease];
-    _sliderCurrentDurationEmbedded.autoresizingMask = UIViewAutoresizingFlexibleBottomMargin | UIViewAutoresizingFlexibleWidth;
-
+    
+    _sliderCurrentDurationEmbedded = [[[UISlider alloc] initWithFrame:CGRectZero] autorelease];
+    _sliderCurrentDurationEmbedded.translatesAutoresizingMaskIntoConstraints = NO;
     _sliderCurrentDurationEmbedded.minimumValue = 0.0;
     _sliderCurrentDurationEmbedded.value = 0.0;
     _sliderCurrentDurationEmbedded.continuous = YES;
@@ -746,93 +564,139 @@ static NSString * errorText(VKError errCode);
     [_sliderCurrentDurationEmbedded addTarget:self action:@selector(onSliderCurrentDurationTouchedOut:) forControlEvents:UIControlEventTouchUpOutside];
     [_sliderCurrentDurationEmbedded addTarget:self action:@selector(onSliderCurrentDurationChanged:) forControlEvents:UIControlEventValueChanged];
     _sliderCurrentDurationEmbedded.hidden = YES;
-    [_sliderCurrentDurationEmbedded setMinimumTrackImage:_imgSliderMin forState:UIControlStateNormal];
-    [_sliderCurrentDurationEmbedded setMaximumTrackImage:_imgSliderMax forState:UIControlStateNormal];
-    [_sliderCurrentDurationEmbedded setThumbImage:_imgSliderThumb forState:UIControlStateNormal];
+    if ([[[UIDevice currentDevice] systemVersion] compare:@"7.0" options:NSNumericSearch] != NSOrderedDescending) {
+        [_sliderCurrentDurationEmbedded setMinimumTrackImage:_imgSliderMin forState:UIControlStateNormal];
+        [_sliderCurrentDurationEmbedded setMaximumTrackImage:_imgSliderMax forState:UIControlStateNormal];
+        [_sliderCurrentDurationEmbedded setThumbImage:_imgSliderThumb forState:UIControlStateNormal];
+    }
     [_viewControlPanelEmbedded addSubview:_sliderCurrentDurationEmbedded];
-
+ 
+    [_viewControlPanelEmbedded addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-panel_embedded_y_margin-[_buttonPanelPPEmbedded(==button_panel_width)]" options:0 metrics:metricsEmbeddedPanel views:NSDictionaryOfVariableBindings(_buttonPanelPPEmbedded)]];
+    
+    // align subviews of _viewControlPanelEmbedded from the left & top
+    [_viewControlPanelEmbedded addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-panel_embedded_x_margin-[_buttonPanelPPEmbedded(==button_panel_width)]-8-[_labelStreamCurrentTimeEmbedded(==label_width)]-4-[_sliderCurrentDurationEmbedded]-4-[_labelStreamTotalDurationEmbedded(<=label_width)]-8-[_buttonFullScreenEmbedded(==button_panel_width)]-panel_embedded_x_margin-|" options:NSLayoutFormatAlignAllCenterY metrics:metricsEmbeddedPanel views:NSDictionaryOfVariableBindings(_buttonPanelPPEmbedded, _labelStreamCurrentTimeEmbedded, _buttonFullScreenEmbedded, _labelStreamTotalDurationEmbedded, _sliderCurrentDurationEmbedded)]];
+    
     [_buttonPanelPPEmbedded setImage:[UIImage imageNamed:@"VKImages.bundle/vk-panel-button-play-embedded.png"] forState:UIControlStateNormal];
-    [_buttonScaleEmbedded setImage:[UIImage imageNamed:@"VKImages.bundle/vk-bar-button-zoom-out.png"] forState:UIControlStateNormal];
+    [_buttonFullScreenEmbedded setImage:[UIImage imageNamed:@"VKImages.bundle/vk-bar-button-zoom-out.png"] forState:UIControlStateNormal];
 }
 
 - (void)createUICenter {
-    /* Center subviews: _imgViewAudioOnly */
-    int hAudioOnly = 156.0/2.0;
-    int wAudioOnly = 185.0/2.0;
-    int yAudioOnly = (self.view.bounds.size.height - hAudioOnly)/2.0;
-    int xAudioOnly = (self.view.bounds.size.width - wAudioOnly)/2.0;
-    _imgViewAudioOnly = [[UIImageView alloc] initWithFrame:CGRectMake(xAudioOnly, yAudioOnly, wAudioOnly, hAudioOnly)];
-    _imgViewAudioOnly.autoresizingMask = UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin| UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleLeftMargin;
-    _imgViewAudioOnly.contentMode = UIViewContentModeScaleAspectFit;
-    _imgViewAudioOnly.hidden = YES;
-    _imgViewAudioOnly.opaque = NO;
-    [self.view addSubview:_imgViewAudioOnly];
 
+    [super createUICenter];
+    
     /* Center subviews: _imgViewExternalScreen */
     int hExtScreen = 122.0;
     int wExtScreen = 91.0;
-    int yExtScreen = (self.view.bounds.size.height - hExtScreen)/2.0;
-    int xExtScreen = (self.view.bounds.size.width - wExtScreen)/2.0;
-    _imgViewExternalScreen = [[UIImageView alloc] initWithFrame:CGRectMake(xExtScreen, yExtScreen, wExtScreen, hExtScreen)];
-    _imgViewExternalScreen.autoresizesSubviews = YES;
-    _imgViewExternalScreen.autoresizingMask = UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin| UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleLeftMargin;
+    
+    NSDictionary *metricsImgViewExternalScreen = @{@"imgview_extscreen_height": @(hExtScreen), @"imgview_extscreen_width": @(wExtScreen)};
+
+    _imgViewExternalScreen = [[UIImageView alloc] initWithFrame:CGRectZero];
+    _imgViewExternalScreen.translatesAutoresizingMaskIntoConstraints = NO;
     _imgViewExternalScreen.contentMode = UIViewContentModeScaleAspectFit;
     _imgViewExternalScreen.hidden = YES;
     _imgViewExternalScreen.opaque = NO;
     _imgViewExternalScreen.userInteractionEnabled = YES;
     [self.view insertSubview:_imgViewExternalScreen atIndex:0];
-
-    int hViewInfo = 230.0;
-    int hViewInfoMargin = 10.0;
-    int wViewInfo = 280.0;
-    int yViewInfo = (self.view.bounds.size.height - hViewInfo)/2.0 - hViewInfoMargin;
-    int xViewInfo = (self.view.bounds.size.width - wViewInfo)/2.0;
-    _viewInfo = [[VKStreamInfoView alloc] initWithFrame:CGRectMake(xViewInfo, yViewInfo, wViewInfo, hViewInfo)];
-    _viewInfo.autoresizingMask = UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleLeftMargin;
-    _viewInfo.contentMode = UIViewContentModeCenter;
-    _viewInfo.hidden = YES;
-    [self addGesturesToInfoView:_viewInfo];
-    [self.view addSubview:_viewInfo];
-
+    
+    // center _imgViewExternalScreen horizontally in self.view
+    [self.view addConstraint:[NSLayoutConstraint constraintWithItem:_imgViewExternalScreen attribute:NSLayoutAttributeCenterX relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeCenterX multiplier:1.0 constant:0.0]];
+    
+    // center _imgViewExternalScreen vertically in self.view
+    [self.view addConstraint:[NSLayoutConstraint constraintWithItem:_imgViewExternalScreen attribute:NSLayoutAttributeCenterY relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeCenterY multiplier:1.0 constant:0.0]];
+    
+    // width constraint
+    [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[_imgViewExternalScreen(==imgview_extscreen_height)]" options:0 metrics:metricsImgViewExternalScreen views:NSDictionaryOfVariableBindings(_imgViewExternalScreen)]];
+    
+    // height constraint
+    [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[_imgViewExternalScreen(==imgview_extscreen_width)]" options:0 metrics:metricsImgViewExternalScreen views:NSDictionaryOfVariableBindings(_imgViewExternalScreen)]];
+    
     /* set the images */
-    _imgViewAudioOnly.image = [UIImage imageNamed:@"VKImages.bundle/vk-audio-only.png"];
     _imgViewExternalScreen.image = [UIImage imageNamed:@"VKImages.bundle/vk-external-screen.png"];
 }
 
 - (void)addUIFullScreen {
-    if (![_viewControlPanel superview])
+    if (![_viewControlPanel superview]) {
         [self.view addSubview:_viewControlPanel];
-
-    if (![_toolBar superview])
+        
+        // center _viewControlPanel horizontally in self.view
+        [self.view addConstraint:[NSLayoutConstraint constraintWithItem:_viewControlPanel attribute:NSLayoutAttributeCenterX relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeCenterX multiplier:1.0 constant:0.0]];
+        
+        // align _viewControlPanel from the bottom
+        [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[_viewControlPanel(==93)]-3-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_viewControlPanel)]];
+        
+        // width constraint
+        [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[_viewControlPanel(==314)]" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_viewControlPanel)]];
+    }
+    
+    if (![_toolBar superview]) {
         [self.view addSubview:_toolBar];
+        
+        // align _toolBar from the left and right
+        [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-0-[_toolBar]-0-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_toolBar)]];
+        
+        //_toolBar height constant
+        NSLayoutConstraint *toolBarConstaintHeight = [NSLayoutConstraint constraintWithItem:_toolBar attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:NULL attribute:NSLayoutAttributeNotAnAttribute multiplier:1.0 constant:44.0];
+        [self.view addConstraint:toolBarConstaintHeight];
+        
+        // align _toolBar from the top
+        NSLayoutConstraint *toolBarConstaintTop = [NSLayoutConstraint constraintWithItem:_toolBar attribute:NSLayoutAttributeTop relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeTop multiplier:1.0 constant:0.0];
+        toolBarConstaintTop.identifier = @"toolbar-top-margin";
+        [self.view addConstraint:toolBarConstaintTop];
+    }
 }
 
 - (void)removeUIFullScreen {
     if ([_viewControlPanel superview])
         [_viewControlPanel removeFromSuperview];
-
+    
     if ([_toolBar superview])
         [_toolBar removeFromSuperview];
 }
 
 - (void)addUIEmbedded {
-    if (![_viewControlPanelEmbedded superview])
+    if (![_viewControlPanelEmbedded superview]) {
         [self.view addSubview:_viewControlPanelEmbedded];
-
-    if (![_viewBarEmbedded superview])
+        
+        // align _viewBarEmbedded from the left and right
+        [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-0-[_viewControlPanelEmbedded]-0-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_viewControlPanelEmbedded)]];
+        // align _viewBarEmbedded from the top
+        [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[_viewControlPanelEmbedded(==30)]-0-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_viewControlPanelEmbedded)]];
+    }
+    
+    if (![_viewBarEmbedded superview]) {
         [self.view addSubview:_viewBarEmbedded];
-
-    if (![_labelStatusEmbedded superview])
+        
+        // align _viewBarEmbedded from the left and right
+        [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-0-[_viewBarEmbedded]-0-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_viewBarEmbedded)]];
+        // align _viewBarEmbedded from the top
+        [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-0-[_viewBarEmbedded(==30)]" options:0 metrics:nil views:NSDictionaryOfVariableBindings(_viewBarEmbedded)]];
+    }
+    
+    if (![_labelStatusEmbedded superview]) {
         [self.view addSubview:_labelStatusEmbedded];
+        
+        int hLabel = 30.0;
+        int wLabel = 120.0;
+        NSDictionary *metrics = @{@"label_height": @(hLabel), @"label_width": @(wLabel)};
+        
+        // center _labelStatusEmbedded horizontally in self.view
+        [self.view addConstraint:[NSLayoutConstraint constraintWithItem:_labelStatusEmbedded attribute:NSLayoutAttributeCenterX relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeCenterX multiplier:1.0 constant:0.0]];
+        // center _labelStatusEmbedded vertically in self.view
+        [self.view addConstraint:[NSLayoutConstraint constraintWithItem:_labelStatusEmbedded attribute:NSLayoutAttributeCenterY relatedBy:NSLayoutRelationEqual toItem:self.view attribute:NSLayoutAttributeCenterY multiplier:1.0 constant:0.0]];
+        // width constraint
+        [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[_labelStatusEmbedded(==label_width)]" options:0 metrics:metrics views:NSDictionaryOfVariableBindings(_labelStatusEmbedded)]];
+        // height constraint
+        [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[_labelStatusEmbedded(==label_height)]" options:0 metrics:metrics views:NSDictionaryOfVariableBindings(_labelStatusEmbedded)]];
+    }
 }
 
 - (void)removeUIEmbedded {
     if ([_viewControlPanelEmbedded superview])
         [_viewControlPanelEmbedded removeFromSuperview];
-
+    
     if ([_viewBarEmbedded superview])
         [_viewBarEmbedded removeFromSuperview];
-
+    
     if ([_labelStatusEmbedded superview])
         [_labelStatusEmbedded removeFromSuperview];
 }
@@ -843,13 +707,13 @@ static NSString * errorText(VKError errCode);
     if (state == kVKErrorNone) {
         value = YES;
     }
-
+    
     //Fullscreen
     [_labelBarTitle setHidden:value];
     [_labelStreamCurrentTime setHidden:!value];
     [_labelStreamTotalDuration setHidden:!value];
     [_sliderCurrentDuration setHidden:!value];
-
+    
     //Embedded
     [_labelStreamCurrentTimeEmbedded setHidden:!value];
     [_labelStreamTotalDurationEmbedded setHidden:!value];
@@ -857,7 +721,6 @@ static NSString * errorText(VKError errCode);
 }
 
 - (void)useContainerViewControllerAnimated:(BOOL)animated {
-    VKFullscreenContainer *fsContainerVc = [[[VKFullscreenContainer alloc] initWithPlayerController:self] autorelease];
     UIViewController *currentVc = [[[[UIApplication sharedApplication] delegate] window] rootViewController];
     UIViewController *topVc = nil;
 
@@ -868,6 +731,8 @@ static NSString * errorText(VKError errCode);
             topVc = [(UITabBarController *)currentVc selectedViewController];
         } else if ([currentVc presentedViewController]) {
             topVc = [currentVc presentedViewController];
+        } else if ([currentVc isKindOfClass:[UIViewController class]]) {
+            topVc = currentVc;
         } else {
             VKLog(kVKLogLevelDecoder, @"Expected a view controller but not found...");
             return;
@@ -876,12 +741,34 @@ static NSString * errorText(VKError errCode);
         VKLog(kVKLogLevelDecoder, @"Expected a view controller but not found...");
         return;
     }
+    
+    
+    [self.scrollView setZoomScale:1.0 animated:NO];
+    [self.scrollView setDisableCenterViewNow:YES];
 
     [self.view.superview bringSubviewToFront:self.view];
+    
+    self.view.backgroundColor = [UIColor clearColor];
+    self.scrollView.backgroundColor = [UIColor clearColor];
+    
     float duration = (animated) ? 0.5 : 0.0;
-
-    [UIView animateWithDuration:duration animations:^{
-        CGRect bounds = [[UIScreen mainScreen] bounds];
+    
+    UIWindow *keyWindow = [[[UIApplication sharedApplication] windows] lastObject];
+    id windowActive = keyWindow;
+    if ([[[UIDevice currentDevice] systemVersion] compare:@"8.0" options:NSNumericSearch] == NSOrderedAscending) {
+        //running on iOS 7.x
+        windowActive = [[keyWindow subviews] objectAtIndex:0];
+    }
+    
+    CGRect newRectToWindow = [windowActive convertRect:self.view.frame fromView:self.view.superview];
+    VKFullscreenContainer *fsContainerVc = [[[VKFullscreenContainer alloc] initWithPlayerController:self
+                                                                                         windowRect:newRectToWindow] autorelease];
+    [self removeUIEmbedded];
+    
+    CGRect bounds = [[UIScreen mainScreen] bounds];
+    
+    if ([[[UIDevice currentDevice] systemVersion] compare:@"8.0" options:NSNumericSearch] == NSOrderedAscending) {
+        //running on only iOS 7.x
         UIInterfaceOrientation orientation = (UIInterfaceOrientation)[[UIDevice currentDevice] orientation];
         if (UIDeviceOrientationIsValidInterfaceOrientation(orientation)) {
             if (UIInterfaceOrientationIsLandscape(orientation)) {
@@ -892,71 +779,154 @@ static NSString * errorText(VKError errCode);
                 bounds =  CGRectMake(bounds.origin.x, bounds.origin.y, bounds.size.height, bounds.size.width);
             }
         }
-
-        self.view.frame = bounds;
-
-    } completion:^(BOOL finished) {
-            [self.view removeFromSuperview];
-            _containerVc = [fsContainerVc retain];
-
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
-            if ([[[UIDevice currentDevice] systemVersion] compare:@"6.0" options:NSNumericSearch] != NSOrderedAscending) {
-                //running on iOS 6.0 or higher
-                [topVc presentViewController:fsContainerVc animated:NO completion:NULL];
+    }
+    
+    __block NSLayoutConstraint *constraintTopByWin, *constraintLeftByWin, *constraintWidthByWin, *constraintHeightByWin;
+    
+    [topVc presentViewController:fsContainerVc animated:YES completion:^{
+        
+        [windowActive addSubview:self.view];
+        
+        if (![self.view translatesAutoresizingMaskIntoConstraints]) {
+            //Set Autolayout constraints self.view
+            
+            // align self.view from the top
+            constraintTopByWin = [NSLayoutConstraint constraintWithItem:self.view attribute:NSLayoutAttributeTop relatedBy:NSLayoutRelationEqual toItem:windowActive attribute:NSLayoutAttributeTop multiplier:1.0 constant:newRectToWindow.origin.y];
+            [windowActive addConstraint:constraintTopByWin];
+            
+            // align self.view from the left
+            constraintLeftByWin = [NSLayoutConstraint constraintWithItem:self.view attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:windowActive attribute:NSLayoutAttributeLeft multiplier:1.0 constant:newRectToWindow.origin.x];
+            [windowActive addConstraint:constraintLeftByWin];
+            
+            // self.view width constant
+            constraintWidthByWin = [NSLayoutConstraint constraintWithItem:self.view attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:NULL attribute:NSLayoutAttributeNotAnAttribute multiplier:1.0 constant:newRectToWindow.size.width];
+            [windowActive addConstraint:constraintWidthByWin];
+            
+            // self.view height constant
+            constraintHeightByWin = [NSLayoutConstraint constraintWithItem:self.view attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:NULL attribute:NSLayoutAttributeNotAnAttribute multiplier:1.0 constant:newRectToWindow.size.height];
+            [windowActive addConstraint:constraintHeightByWin];
+            
+            [self.view setNeedsLayout];
+            [self.view layoutIfNeeded];
+        }
+        
+        [UIView animateWithDuration:duration animations:^{
+            
+            if (![self.view translatesAutoresizingMaskIntoConstraints]) {
+                //view has autolayout
+                constraintTopByWin.constant = 0.0;
+                constraintLeftByWin.constant = 0.0;
+                constraintWidthByWin.constant = bounds.size.width;
+                constraintHeightByWin.constant = bounds.size.height;
+                [self.view setNeedsLayout];
+                [self.view layoutIfNeeded];
             } else {
-                //running on iOS 5.x
-#if __IPHONE_OS_VERSION_MIN_REQUIRED < 60000
-                [topVc presentModalViewController:fsContainerVc animated:NO];
-#endif
+                self.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+                self.view.frame = bounds;
             }
-#else
-            [topVc presentModalViewController:fsContainerVc animated:NO];
-#endif
-            _toolBar.frame = CGRectMake(0.0, 0.0, self.view.frame.size.width, 44.0);
-
-            int mrgnBtPanel = 8.0;
-            int hPanel = 93.0;
-            int wPanel = 314.0;
-            int yPanel = self.view.bounds.size.height - hPanel - mrgnBtPanel;
-            int xPanel = (self.view.bounds.size.width - wPanel)/2.0;
-            _viewControlPanel.frame = CGRectMake(xPanel, yPanel, wPanel, hPanel);
-
+            if (_mainScreenIsMobile) {
+                _renderView.frame = [_renderView exactFrameRectForSize:self.view.bounds.size fillScreen:[self fillScreen]];
+                [_renderView updateOpenGLFrameSizes];
+            }
+            
+        } completion:^(BOOL finished) {
+            
+            _containerVc = [fsContainerVc retain];
+            
             if (_controlStyle != kVKPlayerControlStyleNone) {
-                [self removeUIEmbedded];
+                _toolBar.alpha = 0.0;
+                _viewControlPanel.alpha = 0.0;
+                _panelIsHidden = YES;
                 [self addUIFullScreen];
                 _controlStyle = kVKPlayerControlStyleFullScreen;
             }
-        [[NSNotificationCenter defaultCenter] postNotificationName:kVKPlayerDidEnterFullscreenNotification object:nil userInfo:nil];
+            
+            float statusBarHeight = [UIApplication sharedApplication].statusBarFrame.size.height;
+            if ([[[UIDevice currentDevice] systemVersion] compare:@"8.0" options:NSNumericSearch] == NSOrderedAscending) {
+                //running on only iOS 7.x
+                UIInterfaceOrientation orientation = (UIInterfaceOrientation)[[UIDevice currentDevice] orientation];
+                if (UIDeviceOrientationIsValidInterfaceOrientation(orientation)) {
+                    if (UIInterfaceOrientationIsLandscape(orientation)) {
+                        statusBarHeight = [UIApplication sharedApplication].statusBarFrame.size.width;
+                    }
+                } else {
+                    if (UIInterfaceOrientationIsLandscape(topVc.interfaceOrientation)) {
+                        statusBarHeight = [UIApplication sharedApplication].statusBarFrame.size.width;
+                    }
+                }
+            }
+            
+            _toolBar.delegate = (id<UIToolbarDelegate>)fsContainerVc;
+            
+            NSArray *constraints = [self.view constraints];
+            NSLayoutConstraint *constraitTop = nil;
+            for (NSLayoutConstraint *constraint in constraints) {
+                if ([constraint.identifier isEqualToString:@"toolbar-top-margin"]) {
+                    constraitTop = constraint;
+                    break;
+                }
+            }
+            if (_statusBarHidden) {
+                constraitTop.constant = 0.0;
+            } else {
+                constraitTop.constant = (statusBarHeight != 0) ? statusBarHeight : 20.0;
+            }
+            
+            [fsContainerVc.view addSubview:self.view];
+            
+            UIView *playerView = self.view;
+            // align _playerController.view from the left and right
+            [fsContainerVc.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-0-[playerView]-0-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(playerView)]];
+            
+            // align _playerController.view from the top and bottom
+            [fsContainerVc.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-0-[playerView]-0-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(playerView)]];
+            
+            if (_mainScreenIsMobile) {
+                [self.scrollView setDisableCenterViewNow:NO];
+            }
+            [[NSNotificationCenter defaultCenter] postNotificationName:kVKPlayerDidEnterFullscreenNotification object:nil userInfo:nil];
+        }];
     }];
 }
 
-- (void)addScreenControlGesturesToView:(UIView *)viewGesture {
-    _doubleTapGestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTap:)];
-    _doubleTapGestureRecognizer.numberOfTapsRequired = 2;
-    [viewGesture addGestureRecognizer:_doubleTapGestureRecognizer];
-    _singleTapGestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTap:)];
-    _singleTapGestureRecognizer.numberOfTapsRequired = 1;
-    [_singleTapGestureRecognizer requireGestureRecognizerToFail:_doubleTapGestureRecognizer];
-    [viewGesture addGestureRecognizer:_singleTapGestureRecognizer];
-    _pinchGestureRecognizer = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(handlePinch:)];
-    [viewGesture addGestureRecognizer:_pinchGestureRecognizer];
+- (void)addScreenControlGesturesToContainerView:(UIView *)viewContainer renderView:(UIView *)viewRender {
+    if (viewContainer) {
+        _singleTapGestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTap:)];
+        _singleTapGestureRecognizer.numberOfTapsRequired = 1;
+        [viewContainer addGestureRecognizer:_singleTapGestureRecognizer];
+
+        _longGestureRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleLongPress:)];
+        [viewContainer addGestureRecognizer:_longGestureRecognizer];
+        
+        [_singleTapGestureRecognizer requireGestureRecognizerToFail:_longGestureRecognizer];
+    }
+    
+    if (viewRender) {
+        _doubleTapGestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTap:)];
+        _doubleTapGestureRecognizer.numberOfTapsRequired = 2;
+        [viewRender addGestureRecognizer:_doubleTapGestureRecognizer];
+        
+        [_singleTapGestureRecognizer requireGestureRecognizerToFail:_doubleTapGestureRecognizer];
+    }
 }
 
-- (void)removeScreenControlGesturesFromView:(UIView *)viewGesture {
+- (void)removeScreenControlGesturesFromContainerView:(UIView *)viewContainer renderView:(UIView *)viewRender {
     if (_singleTapGestureRecognizer) {
-        [viewGesture removeGestureRecognizer:_singleTapGestureRecognizer];
+        [viewContainer removeGestureRecognizer:_singleTapGestureRecognizer];
         [_singleTapGestureRecognizer release];
         _singleTapGestureRecognizer = nil;
     }
+    
+    if (_longGestureRecognizer) {
+        [viewContainer removeGestureRecognizer:_longGestureRecognizer];
+        [_longGestureRecognizer release];
+        _longGestureRecognizer = nil;
+    }
+    
     if (_doubleTapGestureRecognizer) {
-        [viewGesture removeGestureRecognizer:_doubleTapGestureRecognizer];
+        [viewRender removeGestureRecognizer:_doubleTapGestureRecognizer];
         [_doubleTapGestureRecognizer release];
         _doubleTapGestureRecognizer = nil;
-    }
-    if (_pinchGestureRecognizer) {
-        [viewGesture removeGestureRecognizer:_pinchGestureRecognizer];
-        [_pinchGestureRecognizer release];
-        _pinchGestureRecognizer = nil;
     }
 }
 
@@ -972,23 +942,33 @@ static NSString * errorText(VKError errCode);
     }
 }
 
-- (void)setBackgroundColor:(UIColor *)backgroundColor {
-    if (_backgroundColor) {
-        [_backgroundColor release];
-        _backgroundColor = nil;
+#ifdef VK_RECORDING_CAPABILITY
+- (void)setRecordingEnabled:(BOOL)recordingEnabled {
+    [super setRecordingEnabled:recordingEnabled];
+    [_buttonPanelRecord setHidden:!recordingEnabled];
+    
+    NSArray *constraints = [_viewControlPanel constraints];
+    NSLayoutConstraint *constraitWidth = nil;
+    for (NSLayoutConstraint *constraint in constraints) {
+        if ([constraint.identifier isEqualToString:@"_sliderVolume-width"]) {
+            constraitWidth = constraint;
+            break;
+        }
     }
-    _backgroundColor = [backgroundColor retain];
-    self.view.backgroundColor = _backgroundColor;
-    if (_renderView) {
-        _renderView.backgroundColor = _backgroundColor;
+    
+    if (_recordingEnabled) {
+        constraitWidth.constant = 169.0;
+    } else {
+        constraitWidth.constant = 219.0;
     }
 }
+#endif
 
-#pragma mark Subview & timer actions
+#pragma mark Subview actions
 
 - (IBAction)onBarButtonsTapped:(id)sender {
 
-    int tag = [(UIBarButtonItem *)sender tag];
+    int tag = (int)[(UIBarButtonItem *)sender tag];
 
     if (tag == BAR_BUTTON_TAG_DONE) {
         if (_containerVc && ([NSStringFromClass([_containerVc class]) isEqualToString:@"VKPlayerViewController"])) {
@@ -998,19 +978,29 @@ static NSString * errorText(VKError errCode);
             [self performSelector:@selector(setFullScreen:) withObject:NULL afterDelay:0.1];
         }
     } else if (tag == BAR_BUTTON_TAG_SCALE) {
-        [self performSelector:@selector(scale)];
+        [self performSelector:@selector(zoomInOut)];
     }
 }
 
 - (IBAction)onControlPanelButtonsTapped:(id)sender {
-    int tag = [(UIButton *)sender tag];
+    int tag = (int)[(UIButton *)sender tag];
     if (tag == PANEL_BUTTON_TAG_PP_TOGGLE) {
         [self performSelector:@selector(togglePause)];
     } else if (tag == PANEL_BUTTON_TAG_INFO) {
         [self performSelector:@selector(showInfoView)];
     } else if (tag == PANEL_BUTTON_TAG_FULLSCREEN) {
         [self setFullScreen:YES];
+        return;
     }
+#ifdef VK_RECORDING_CAPABILITY
+    else if (tag == PANEL_BUTTON_TAG_RECORD) {
+        if (![_decodeManager recordingNow]) {
+            [self startRecording];
+        } else {
+            [self stopRecording];
+        }
+    }
+#endif
     [self showControlPanel:YES willExpire:YES];
 }
 
@@ -1065,84 +1055,13 @@ retry:
     //Fullscreen
     _buttonPanelPP.enabled = enabled;
     _buttonPanelInfo.enabled = enabled;
+#ifdef VK_RECORDING_CAPABILITY
+    _buttonPanelRecord.enabled = enabled;
+#endif
 
     //Embedded
     _buttonPanelPPEmbedded.enabled = enabled;
-    _buttonScaleEmbedded.enabled = enabled;
-}
-
-- (void)startElapsedTimer {
-    [self stopElapsedTimer];
-    _timerElapsedTime = [[NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(onTimerElapsedFired:) userInfo:nil repeats:YES] retain];
-}
-
-- (void)stopElapsedTimer {
-    if (_timerElapsedTime && [_timerElapsedTime isValid]) {
-        [_timerElapsedTime invalidate];
-    }
-    [_timerElapsedTime release];
-    _timerElapsedTime = nil;
-}
-
-- (void)startDurationTimer {
-    [self stopDurationTimer];
-    _timerDuration = [[NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(onTimerDurationFired:) userInfo:nil repeats:YES] retain];
-}
-
-- (void)stopDurationTimer {
-    if (_timerDuration && [_timerDuration isValid]) {
-        [_timerDuration invalidate];
-    }
-    [_timerDuration release];
-    _timerDuration = nil;
-    _labelElapsedTime.text = @"00:00";
-    _labelElapsedTimeEmbedded.text = _labelElapsedTime.text;
-}
-
-- (void)showInfoView {
-    if (_viewInfo && _viewInfo.hidden) {
-        _viewInfo.alpha = 0.0;
-        _viewInfo.hidden = NO;
-
-        NSMutableDictionary *streamInfo = [_decodeManager streamInfo];
-        NSNumber *downloadedData = [NSNumber numberWithUnsignedLong:_decodeManager.totalBytesDownloaded];
-        [streamInfo setObject:downloadedData forKey:STREAMINFO_KEY_DOWNLOAD];
-        [_viewInfo updateSubviewsWithInfo:streamInfo];
-
-        [UIView animateWithDuration:0.4 animations:^{
-            _viewInfo.alpha = 1.0;
-        }];
-
-        if (_timerInfoViewUpdate && [_timerInfoViewUpdate isValid]) {
-            [_timerInfoViewUpdate invalidate];
-        }
-        [_timerInfoViewUpdate release];
-        _timerInfoViewUpdate = nil;
-
-        _timerInfoViewUpdate = [[NSTimer scheduledTimerWithTimeInterval:2.0 target:self selector:@selector(updateStreamInfoView) userInfo:nil repeats:YES] retain];
-    }
-}
-
-- (void)hideInfoView {
-    if (_viewInfo && !_viewInfo.hidden) {
-        [UIView animateWithDuration:0.4 animations:^{
-            _viewInfo.alpha = 0.0;
-        } completion:^(BOOL finished) {
-            _viewInfo.hidden = YES;
-        }];
-        if (_timerInfoViewUpdate && [_timerInfoViewUpdate isValid]) {
-            [_timerInfoViewUpdate invalidate];
-        }
-        [_timerInfoViewUpdate release];
-        _timerInfoViewUpdate = nil;
-    }
-}
-
-- (void)updateStreamInfoView {
-    NSMutableDictionary *streamInfo = [_decodeManager streamInfo];
-    NSNumber *downloadedData = [NSNumber numberWithUnsignedLong:_decodeManager.totalBytesDownloaded];
-    [streamInfo setObject:downloadedData forKey:STREAMINFO_KEY_DOWNLOAD];
-    [_viewInfo updateSubviewsWithInfo:streamInfo];
+    _buttonFullScreenEmbedded.enabled = enabled;
 }
 
 - (void)onSliderCurrentDurationTouched:(id) sender {
@@ -1168,6 +1087,14 @@ retry:
     _labelStreamCurrentTimeEmbedded.text =  _labelStreamCurrentTime.text;
 }
 
+#pragma mark Timer actions
+
+- (void)stopDurationTimer {
+    [super stopDurationTimer];
+    _labelElapsedTime.text = @"00:00";
+    _labelElapsedTimeEmbedded.text = _labelElapsedTime.text;
+}
+
 #pragma mark Timers callbacks
 
 - (void)onTimerPanelHiddenFired:(NSTimer *)timer {
@@ -1175,7 +1102,7 @@ retry:
 }
 
 - (void)onTimerElapsedFired:(NSTimer *)timer {
-    _elapsedTime = _elapsedTime + 1;
+    [super onTimerElapsedFired:timer];
     _labelElapsedTime.text = [NSString stringWithFormat:@"%02d:%02d", _elapsedTime/60, (_elapsedTime % 60)];
     _labelElapsedTimeEmbedded.text = _labelElapsedTime.text;
 }
@@ -1183,246 +1110,22 @@ retry:
 - (void)onTimerDurationFired:(NSTimer *)timer {
 
     if (_decoderState == kVKDecoderStatePlaying) {
-        _durationCurrent = (_decodeManager) ? [_decodeManager masterClock] : 0.0;
-        _labelStreamCurrentTime.text = [NSString stringWithFormat:@"%02d:%02d", (int)_durationCurrent/60, ((int)_durationCurrent % 60)];
-        _labelStreamCurrentTimeEmbedded.text = _labelStreamCurrentTime.text;
-        if(!_sliderDurationCurrentTouched) {
-            _sliderCurrentDuration.value = _durationCurrent;
-            _sliderCurrentDurationEmbedded.value = _sliderCurrentDuration.value;
+        _durationCurrent = (_decodeManager) ? [_decodeManager currentTime] : 0.0;
+        if (!isnan(_durationCurrent) && ((_durationTotal - _durationCurrent) > -1.0)) {
+            _labelStreamCurrentTime.text = [NSString stringWithFormat:@"%02d:%02d", (int)_durationCurrent/60, ((int)_durationCurrent % 60)];
+            _labelStreamCurrentTimeEmbedded.text = _labelStreamCurrentTime.text;
+            if(!_sliderDurationCurrentTouched) {
+                _sliderCurrentDuration.value = _durationCurrent;
+                _sliderCurrentDurationEmbedded.value = _sliderCurrentDuration.value;
+            }
         }
     }
 }
 
-#pragma mark - Public Player instant action methods
-
-- (void)play {
-
-    if (_playingIsInProgress){
-        VKLog(kVKLogLevelDecoder, @"_playingIsInProgress - return");
-        return;
-    }
-
-    dispatch_async(_playStopQueue, ^(void) {
-        VKLog(kVKLogLevelDecoder, @"dispatch_async - play()");
-        _playingIsInProgress = YES;
-
-        [UIApplication sharedApplication].idleTimerDisabled = YES;
-        _elapsedTime = 0;
-        _durationCurrent = 0.0;
-        _durationTotal = 0.0;
-        _sliderDurationCurrentTouched = NO;
-        _mainScreenIsMobile = YES;
-
-        /* Create decoder with parameters */
-        _decodeManager = [[VKAVDecodeManager alloc] init];
-        _decodeManager.initialPlaybackTime = (_initialPlaybackTime > 0) ? _initialPlaybackTime * NSEC_PER_MSEC : AV_NOPTS_VALUE;
-        _decodeManager.autoStopAtEnd = _autoStopAtEnd;
-        _decodeManager.loopPlayback = _loopPlayback;
-        _decodeManager.delegate = self;
-
-        //extra parameters
-        _decodeManager.avPacketCountLogFrequency = 0.01;
-        [_decodeManager setLogLevel:kVKLogLevelStateChanges|kVKLogLevelDecoder];
-
-        VKError error = [_decodeManager connectWithStreamURLString:_contentURLString options:_decodeOptions];
-
-        dispatch_sync(dispatch_get_main_queue(), ^{
-
-            if (error == kVKErrorNone) {
-                //create glview to render video pictures
-                _renderView = [[VKGLES2View alloc] initWithFrame:self.view.bounds];
-                _renderView.backgroundColor = _backgroundColor;
-                if ([_renderView initGLWithDecodeManager:_decodeManager] == kVKErrorNone) {
-
-                    [self.view insertSubview:_renderView atIndex:0];
-                    [self addScreenControlGesturesToView:_renderView];
-
-                    AVAudioSession *audioSession = [AVAudioSession sharedInstance];
-                    
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
-                    if ([[[UIDevice currentDevice] systemVersion] compare:@"6.0" options:NSNumericSearch] != NSOrderedAscending) {
-                        //running on iOS 6.x or higher
-                        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(interruption:) name:AVAudioSessionInterruptionNotification object:nil];
-                    } else {
-                        //running on iOS 5.x
-#if __IPHONE_OS_VERSION_MIN_REQUIRED < 60000
-                        audioSession.delegate = self;
-#endif
-                    }
-#else
-                    audioSession.delegate = self;
-#endif
-                    NSError *error;
-                    if(![audioSession setCategory:AVAudioSessionCategoryPlayback error:&error]) {
-                        VKLog(kVKLogLevelDecoder, @"Error: Audio Session category could not be set: %@", error.localizedDescription);
-                    }
-                    
-                    NSTimeInterval preferredBufferDuration = .04;
-                    if (![audioSession setPreferredIOBufferDuration: preferredBufferDuration error: &error]) {
-                        VKLog(kVKLogLevelDecoder, @"Error: Audio Session prefered buffer duration could not be set: %@", error.localizedDescription);
-                    }
-                    
-                    if(![audioSession setActive:YES error:&error]) {
-                        VKLog(kVKLogLevelDecoder, @"Error: Audio Session could not be activated: %@", error.localizedDescription);
-                    }
-                    
-                    //readPackets and start decoding
-                    [_decodeManager performSelector:@selector(start)];
-
-                    [self screenDidChange:nil];
-                    // Register for screen connect and disconnect notifications.
-                    [[NSNotificationCenter defaultCenter] addObserver:self
-                                                             selector:@selector(screenDidChange:)
-                                                                 name:UIScreenDidConnectNotification
-                                                               object:nil];
-
-                    [[NSNotificationCenter defaultCenter] addObserver:self
-                                                             selector:@selector(screenDidChange:)
-                                                                 name:UIScreenDidDisconnectNotification
-                                                               object:nil];
-                } else
-                    VKLog(kVKLogLevelDecoder, @"onERRorr status = 1");
-            } else
-                VKLog(kVKLogLevelDecoder, @"onERRorr status = 2");
-        });
-        _playingIsInProgress = NO;
-    });
-}
-
-- (void)togglePause {
-    [_decodeManager performSelector:@selector(togglePause)];
-}
-
-- (void)stop {
-
-    if (_stoppingIsInPlaying){
-        VKLog(kVKLogLevelDecoder, @"_stoppingIsInPlaying - return");
-        return;
-    }
-
-    [self stopElapsedTimer];
-    [self stopDurationTimer];
-    
-    _stoppingIsInPlaying = YES;
-    [_decodeManager abort];
-
-    dispatch_async(_playStopQueue, ^(void) {
-        VKLog(kVKLogLevelDecoder, @"dispatch_async - stop()");
-        [_decodeManager stop];
-        
-        NSError *error;
-        BOOL err = [[AVAudioSession sharedInstance] setActive:NO error:&error];
-        if (!err) VKLog(kVKLogLevelDecoder, @"AudioSession error: %@, code: %d", error.domain, error.code);
-
-        dispatch_sync(dispatch_get_main_queue(), ^{
-            
-            [UIApplication sharedApplication].idleTimerDisabled = NO;
-            [[NSNotificationCenter defaultCenter] removeObserver:self];
-            
-            [self removeScreenControlGesturesFromView:_renderView];
-            [self removeScreenControlGesturesFromView:_viewInfo];
-
-            if (_renderView) {
-                [_renderView shutdown];
-                if ([_renderView superview]) {
-                    [_renderView removeFromSuperview];
-                }
-                [_renderView  release];
-                _renderView = nil;
-            }
-
-            _decodeManager.delegate = nil;
-            [_decodeManager release];
-            _decodeManager = nil;
-
-            if (_containerVc && ([NSStringFromClass([_containerVc class]) isEqualToString:@"VKPlayerViewController"])) {
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
-                if ([[[UIDevice currentDevice] systemVersion] compare:@"6.0" options:NSNumericSearch] != NSOrderedAscending) {
-                    //running on iOS 6.0 or higher
-                    [_containerVc dismissViewControllerAnimated:YES completion:NULL];
-                } else {
-                    //running on iOS 5.x
-#if __IPHONE_OS_VERSION_MIN_REQUIRED < 60000
-                    [_containerVc dismissModalViewControllerAnimated:YES];
-#endif
-                }
-#else
-                [_containerVc dismissModalViewControllerAnimated:YES];
-#endif
-            }
-        });
-        _stoppingIsInPlaying = NO;
-    });
-}
-
-- (void)stepToNextFrame {
-    [_decodeManager stepToNextFrame];
-}
-
-- (void)setStreamCurrentDuration:(float)value  {
-    [_decodeManager doSeek:value];
-}
-
-- (void)changeAudioStream {
-    [_decodeManager cycleAudioStream];
-}
-
-- (void)setMute:(BOOL)value {
-    if (value) {
-        [_decodeManager setVolumeLevel:0.0];
-    } else {
-        [_decodeManager setVolumeLevel:1.0];
-    }
-}
-
-- (NSArray *)playableAudioStreams {
-    return [_decodeManager playableAudioStreams];
-}
-
-- (NSArray *)playableVideoStreams {
-    return [_decodeManager playableVideoStreams];
-}
-
-- (UIImage *)snapshot {
-    if (!_snapshotReadyToGet) {
-        return nil;
-    }
-    return [_renderView snapshot];
-}
-
-#pragma mark - Public Player state change methods
-
-- (void)setInitialPlaybackTime:(int64_t)initialPlaybackTime {
-    _initialPlaybackTime = initialPlaybackTime;
-    if (_decodeManager)
-        [_decodeManager setInitialPlaybackTime:_initialPlaybackTime];
-}
-
-- (void)setLoopPlayback:(int)loopPlayback {
-    _loopPlayback = loopPlayback;
-    if (_decodeManager)
-        [_decodeManager setLoopPlayback:_loopPlayback];
-}
-
-- (void)setAutoStopAtEnd:(BOOL)autoStopAtEnd {
-    _autoStopAtEnd = autoStopAtEnd;
-    if (_decodeManager)
-        [_decodeManager setAutoStopAtEnd:_autoStopAtEnd];
-}
-
 #pragma mark Public Player UI methods
 
-- (void)scale {
-    if (_renderView.contentMode == UIViewContentModeScaleAspectFit){
-        _renderView.contentMode = UIViewContentModeScaleAspectFill;
-        [_barButtonScale setImage:[UIImage imageNamed:@"VKImages.bundle/vk-bar-button-zoom-in.png"]];
-        [_buttonScaleEmbedded setImage:[UIImage imageNamed:@"VKImages.bundle/vk-bar-button-zoom-in.png"] forState:UIControlStateNormal];
-    }
-    else {
-        _renderView.contentMode = UIViewContentModeScaleAspectFit;
-        [_barButtonScale setImage:[UIImage imageNamed:@"VKImages.bundle/vk-bar-button-zoom-out.png"]];
-        [_buttonScaleEmbedded setImage:[UIImage imageNamed:@"VKImages.bundle/vk-bar-button-zoom-out.png"] forState:UIControlStateNormal];
-    }
+- (void)zoomInOut:(UITapGestureRecognizer *)sender {
+    [super zoomInOut:sender];
 }
 
 - (void)setControlStyle:(VKPlayerControlStyle)controlStyle {
@@ -1430,11 +1133,8 @@ retry:
     if (_controlStyle == kVKPlayerControlStyleNone) {
         [self removeUIFullScreen];
         [self removeUIEmbedded];
+        
     }
-}
-
-- (void)setFullScreen:(BOOL)value {
-    [self setFullScreen:value animated:YES];
 }
 
 - (void)setFullScreen:(BOOL)value animated:(BOOL)animated {
@@ -1448,8 +1148,41 @@ retry:
         if (_containerVc &&
             ([NSStringFromClass([_containerVc class]) isEqualToString:@"VKPlayerViewController"])) {
             _controlStyle = kVKPlayerControlStyleFullScreen;
+            
+            float statusBarHeight = [UIApplication sharedApplication].statusBarFrame.size.height;
+            if ([[[UIDevice currentDevice] systemVersion] compare:@"8.0" options:NSNumericSearch] == NSOrderedAscending) {
+                //running on only iOS 7.x
+                UIInterfaceOrientation orientation = (UIInterfaceOrientation)[[UIDevice currentDevice] orientation];
+                if (UIDeviceOrientationIsValidInterfaceOrientation(orientation)) {
+                    if (UIInterfaceOrientationIsLandscape(orientation)) {
+                        statusBarHeight = [UIApplication sharedApplication].statusBarFrame.size.width;
+                    }
+                } else {
+                    if (UIInterfaceOrientationIsLandscape(_containerVc.interfaceOrientation)) {
+                        statusBarHeight = [UIApplication sharedApplication].statusBarFrame.size.width;
+                    }
+                }
+            }
+            
             [self removeUIEmbedded];
             [self addUIFullScreen];
+            
+            _toolBar.delegate = (id<UIToolbarDelegate>)_containerVc;
+            
+            NSArray *constraints = [self.view constraints];
+            NSLayoutConstraint *constraitTop = nil;
+            for (NSLayoutConstraint *constraint in constraints) {
+                if ([constraint.identifier isEqualToString:@"toolbar-top-margin"]) {
+                    constraitTop = constraint;
+                    break;
+                }
+            }
+            if (_statusBarHidden) {
+                constraitTop.constant = 0.0;
+            } else {
+                constraitTop.constant = (statusBarHeight != 0) ? statusBarHeight : 20.0;
+            }
+            
             [[NSNotificationCenter defaultCenter] postNotificationName:kVKPlayerDidEnterFullscreenNotification object:self userInfo:nil];
             return;
         } else {
@@ -1464,28 +1197,26 @@ retry:
             if (_containerVc) {
                 [[UIApplication sharedApplication] setStatusBarHidden:_statusBarHiddenBefore withAnimation:UIStatusBarAnimationFade];
                 [[NSNotificationCenter defaultCenter] postNotificationName:kVKPlayerWillExitFullscreenNotification object:self userInfo:nil];
-                [(VKFullscreenContainer *)_containerVc onDismissWithAnimated:animated];
-                [_containerVc release];
-                _containerVc = nil;
+                
+                [self removeUIFullScreen];
+                
+                [self.scrollView setZoomScale:1.0 animated:NO];
+                [(VKFullscreenContainer *)_containerVc dismissContainerWithAnimated:animated completionHandler:NULL];
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                    [_containerVc release];
+                    _containerVc = nil;
+                    _toolBar.delegate = nil;
+                    
+                    if (_controlStyle != kVKPlayerControlStyleNone) {
+                        _controlStyle = kVKPlayerControlStyleEmbedded;
+                        _viewBarEmbedded.alpha = 0.0;
+                        _viewControlPanelEmbedded.alpha = 0.0;
+                        _panelIsHidden = YES;
+                        [self performSelector:@selector(addUIEmbedded) withObject:nil afterDelay:0.4];
+                    }
+                });
 
-                if (_controlStyle != kVKPlayerControlStyleNone) {
-                    _controlStyle = kVKPlayerControlStyleEmbedded;
-                    [self removeUIFullScreen];
-
-                    _viewBarEmbedded.frame = CGRectMake(0.0, 0.0, self.view.frame.size.width, 30.0);
-
-                    float viewPanelHeight = 30.0;
-                    float viewPanelEmbeddedOriginY = self.view.bounds.size.height - viewPanelHeight;
-                    _viewControlPanelEmbedded.frame = CGRectMake(0.0, viewPanelEmbeddedOriginY, self.view.bounds.size.width, viewPanelHeight);
-
-                    int hLabel = 30.0;int wLabel = 120.0;
-                    int yLabel = (self.view.bounds.size.height - hLabel)/2.0; int xLabel = (self.view.bounds.size.width - wLabel)/2.0;
-                    _labelStatusEmbedded.frame = CGRectMake(xLabel, yLabel, wLabel, hLabel);
-
-                    [self performSelector:@selector(addUIEmbedded) withObject:nil afterDelay:0.4];
-                }
                 dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.9 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-
                     [[NSNotificationCenter defaultCenter] postNotificationName:kVKPlayerDidExitFullscreenNotification object:self userInfo:nil];
                 });
             }
@@ -1493,27 +1224,21 @@ retry:
     }
 }
 
-#pragma mark - gesture recognizer
+#pragma mark - gesture recognizer callback
 
 - (void)handleTap:(UITapGestureRecognizer *) sender {
     if (sender.state == UIGestureRecognizerStateEnded) {
         if (sender == _singleTapGestureRecognizer) {
             [self showControlPanel:_panelIsHidden willExpire:YES];
         } else if (sender == _doubleTapGestureRecognizer){
-            [self performSelector:@selector(scale)];
+            [self performSelector:@selector(zoomInOut:) withObject:sender];
         }
     }
 }
 
-- (void)handlePinch: (UIPinchGestureRecognizer *) sender {
+- (void)handleLongPress:(UILongPressGestureRecognizer*)sender {
     if (sender.state == UIGestureRecognizerStateEnded) {
-        if (sender == _pinchGestureRecognizer) {
-            if (sender.scale > 1.0) {
-                [self setFullScreen:YES];
-            } else {
-                [self setFullScreen:NO];
-            }
-        }
+        [self setFullScreen:!_fullScreen animated:YES];
     }
 }
 
@@ -1524,17 +1249,18 @@ retry:
     if (state == kVKDecoderStateConnecting) {
         [self setPanelButtonsEnabled:NO];
          _imgViewAudioOnly.hidden = YES;
-        _labelStatusEmbedded.hidden = NO;
+        _labelStatusEmbedded.hidden = (_controlStyle == kVKPlayerControlStyleEmbedded) ? NO : YES;
+        _readyToApplyPlayingActions = NO;
 
-        _labelBarTitle.text = TR(@"Loading...");
+        _labelBarTitle.text = [self staturBarInitialText];
         _labelStatusEmbedded.text = _labelBarTitle.text;
-        _labelBarEmbedded.text = _barTitle;
+        _labelBarEmbedded.text = [self barTitle];
 
         [_activityIndicator startAnimating];
         [_activityIndicatorEmbedded startAnimating];
         [self showControlPanel:YES willExpire:NO];
         _labelElapsedTimeEmbedded.hidden = YES;
-
+        
         _sliderCurrentDuration.value = 0.0;
         _sliderCurrentDurationEmbedded.value = 0.0;
         
@@ -1545,14 +1271,14 @@ retry:
     } else if (state == kVKDecoderStateConnected) {
         VKLog(kVKLogLevelStateChanges, @"Connected to the stream server");
     } else if (state == kVKDecoderStateInitialLoading) {
+        _readyToApplyPlayingActions = YES;
         VKLog(kVKLogLevelStateChanges, @"Trying to get packets");
     } else if (state == kVKDecoderStateReadyToPlay) {
         VKLog(kVKLogLevelStateChanges, @"Got enough packets to start playing");
         [_activityIndicator stopAnimating];
         [_activityIndicatorEmbedded stopAnimating];
 
-        _labelBarTitle.frame = _viewCenteredOnBar.bounds;
-        _labelBarTitle.text = _barTitle;
+        _labelBarTitle.text = [self barTitle];
         _labelBarEmbedded.text = _labelBarTitle.text;
 
         [self startElapsedTimer];
@@ -1560,11 +1286,12 @@ retry:
     } else if (state == kVKDecoderStateBuffering) {
         VKLog(kVKLogLevelStateChanges, @"Buffering now...");
     } else if (state == kVKDecoderStatePlaying) {
-        _labelBarTitle.text = _barTitle;
+        _labelBarTitle.text = [self barTitle];
         _labelBarEmbedded.text = _labelBarTitle.text;
         VKLog(kVKLogLevelStateChanges, @"Playing now...");
         [_buttonPanelPP setImage:[UIImage imageNamed:@"VKImages.bundle/vk-panel-button-pause.png"] forState:UIControlStateNormal];
         [_buttonPanelPPEmbedded setImage:[UIImage imageNamed:@"VKImages.bundle/vk-panel-button-pause-embedded.png"] forState:UIControlStateNormal];
+        _labelStatusEmbedded.text = @"";
         _labelStatusEmbedded.hidden = YES;
         _labelElapsedTimeEmbedded.hidden = NO;
         [self showControlPanel:YES willExpire:YES];
@@ -1606,9 +1333,11 @@ retry:
             UIAlertView *alert = [[[UIAlertView alloc] initWithTitle:title message:body delegate:nil cancelButtonTitle:TR(@"OK") otherButtonTitles:nil] autorelease];
             [alert show];
         }
+        
+        _readyToApplyPlayingActions = NO;
         _labelBarTitle.text = TR(@"Connection error");
         _labelStatusEmbedded.text = _labelBarTitle.text;
-        _labelStatusEmbedded.hidden = NO;
+        _labelStatusEmbedded.hidden = (_controlStyle == kVKPlayerControlStyleEmbedded) ? NO : YES;
 
         [self stopElapsedTimer];
         [self stopDurationTimer];
@@ -1619,6 +1348,7 @@ retry:
         [self updateBarWithDurationState:kVKErrorOpenStream];
         VKLog(kVKLogLevelStateChanges, @"Connection error - %@",errorText(errCode));
     } else if (state == kVKDecoderStateStoppedByUser) {
+        _readyToApplyPlayingActions = NO;
         [self stopElapsedTimer];
         [self stopDurationTimer];
         [self updateBarWithDurationState:kVKErrorStreamReadError];
@@ -1630,6 +1360,7 @@ retry:
 
         VKLog(kVKLogLevelStateChanges, @"Stopped now...");
     } else if (state == kVKDecoderStateStoppedWithError) {
+        _readyToApplyPlayingActions = NO;
         if (errCode == kVKErrorStreamReadError) {
             if (_controlStyle == kVKPlayerControlStyleFullScreen) {
                 NSString *title = TR(@"Error: Read error");
@@ -1639,7 +1370,7 @@ retry:
             }
             _labelBarTitle.text = TR(@"Error: Read error");
             _labelStatusEmbedded.text = _labelBarTitle.text;
-            _labelStatusEmbedded.hidden = NO;
+            _labelStatusEmbedded.hidden = (_controlStyle == kVKPlayerControlStyleEmbedded) ? NO : YES;
 
             VKLog(kVKLogLevelStateChanges, @"Player closed - %@",errorText(errCode));
         } else if (errCode == kVKErrorStreamEOFError) {
@@ -1653,24 +1384,67 @@ retry:
         
         [self updateBarWithDurationState:errCode];
     }
-    if(_delegate && [_delegate respondsToSelector:@selector(onPlayerStateChanged:errorCode:)]) {
-        [_delegate onPlayerStateChanged:state errorCode:errCode];
+    if(_delegate && [_delegate respondsToSelector:@selector(player:didChangeState:errorCode:)]) {
+        [_delegate player:self didChangeState:state errorCode:errCode];
     }
 }
 
+#ifdef VK_RECORDING_CAPABILITY
+#pragma mark - VKRecorder delegate methods
+
+- (void)didStartRecordingWithPath:(NSString *)recordPath {
+    
+    if (_recordingEnabled) {
+        [_buttonPanelRecord setImage:[UIImage imageNamed:@"VKImages.bundle/vk-panel-button-record-stop.png"] forState:UIControlStateNormal];
+        
+        CABasicAnimation *theAnimation;
+        theAnimation=[CABasicAnimation animationWithKeyPath:@"opacity"];
+        theAnimation.duration=0.5;
+        theAnimation.repeatCount=HUGE_VALF;
+        theAnimation.autoreverses=YES;
+        theAnimation.fromValue=[NSNumber numberWithFloat:1.0];
+        theAnimation.toValue=[NSNumber numberWithFloat:0.0];
+        [[_buttonPanelRecord layer] addAnimation:theAnimation forKey:@"blink"];
+        
+        if(_delegate && [_delegate respondsToSelector:@selector(player:didStartRecordingWithPath:)]) {
+            [_delegate player:self didStartRecordingWithPath:recordPath];
+        }
+    }
+}
+
+- (void)didStopRecordingWithPath:(NSString *)recordPath error:(VKErrorRecorder)error {
+    
+    if (_recordingEnabled) {
+        
+        [[_buttonPanelRecord layer] removeAnimationForKey:@"blink"];
+        
+        [_buttonPanelRecord setImage:[UIImage imageNamed:@"VKImages.bundle/vk-panel-button-record.png"] forState:UIControlStateNormal];
+        
+        if(_delegate && [_delegate respondsToSelector:@selector(player:didStopRecordingWithPath:error:)]) {
+            [_delegate player:self didStopRecordingWithPath:recordPath error:error];
+        }
+    }
+}
+#endif
+
 #pragma mark - External Screen Management (Cable & Airplay)
 
-- (void)screenDidChange:(NSNotification *)notification
-{
+- (void)screenDidChange:(NSNotification *)notification {
+    [self screenDidChange:notification forceDeattached:NO];
+}
+
+- (void)screenDidChange:(NSNotification *)notification forceDeattached:(BOOL)deattach {
     
     if (!_allowsAirPlay)
         return;
 
     NSArray	*screens = [UIScreen screens];
     NSUInteger screenCount = [screens count];
-
-	if (screenCount > 1) {
+    
+	if (screenCount > 1 && !deattach) {
         if (!_mainScreenIsMobile) return;
+        
+        [self.scrollView setZoomScale:1.0 animated:NO];
 
         // Select first external screen
 		self.extScreen = [screens objectAtIndex:1]; //index 0 is your iPhone/iPad
@@ -1693,72 +1467,55 @@ retry:
 
         // Configure the window (by adding views or setting up your OpenGL ES rendering view).
         if ([_renderView superview]) {
-            [self removeScreenControlGesturesFromView:_renderView];
+            [self removeScreenControlGesturesFromContainerView:_scrollView renderView:_renderView];
             [_renderView removeFromSuperview];
-            [self addScreenControlGesturesToView:_imgViewExternalScreen];
+            [self addScreenControlGesturesToContainerView:self.view renderView:NULL];
             _imgViewExternalScreen.hidden = NO;
         }
 
         // Resize the GL view to fit the external screen
-        _renderView.frame = self.extWindow.frame;
+        _scrollView.scrollEnabled = NO;
+        _scrollView.disableCenterViewNow = YES;
+        _renderView.frame = [_renderView exactFrameRectForSize:self.extWindow.bounds.size fillScreen:[self fillScreen]];
+        [_renderView enableRetina:YES];
+        [_renderView updateOpenGLFrameSizes];
         // Add the GL view
         [self.extWindow addSubview:_renderView];
 
         // Show the window.
-        [self.extWindow makeKeyAndVisible];
-        [_renderView setNeedsLayout];
+        self.extWindow.hidden = NO;
         _mainScreenIsMobile = NO;
 
 	} else {
-        // Release external screen and window
-		self.extScreen = nil;
-		self.extWindow = nil;
 
         if (_mainScreenIsMobile) return;
-
+        
         // Configure the main window (by adding views or setting up your OpenGL ES rendering view).
-        if ([_renderView superview]) {
-            _imgViewExternalScreen.hidden = YES;
-            [self removeScreenControlGesturesFromView:_imgViewExternalScreen];
-            [_renderView removeFromSuperview];
-            [self addScreenControlGesturesToView:_renderView];
-        }
+        _imgViewExternalScreen.hidden = YES;
+        [self removeScreenControlGesturesFromContainerView:self.view renderView:NULL];
+        [_renderView removeFromSuperview];
+        [self addScreenControlGesturesToContainerView:_scrollView renderView:_renderView];
+
         // Resize the GL view to fit the iPhone/iPad screen
-        _renderView.frame = self.view.frame;
+        _renderView.frame = [_renderView exactFrameRectForSize:self.view.bounds.size fillScreen:[self fillScreen]];
+        [_renderView enableRetina:YES];
+        _scrollView.disableCenterViewNow = NO;
 
         // Display the GL view on the iPhone/iPad screen
-        [self.view insertSubview:_renderView atIndex:0];
+        _scrollView.scrollEnabled = YES;
+        [self.scrollView insertSubview:_renderView atIndex:0];
+        
+        [self.scrollView setZoomScale:1.0 animated:NO];
 
-        [_renderView performSelector:@selector(setNeedsLayout) withObject:nil afterDelay:1.0];
+        [_renderView performSelector:@selector(updateOpenGLFrameSizes) withObject:nil afterDelay:2.0];
         _mainScreenIsMobile = YES;
+        
+        // Release external screen and window
+        self.extWindow.hidden = YES;
+        self.extWindow = nil;
 	}
 }
 
-#pragma mark - AudioSession interruption
-
-#pragma mark iOS 5.x Audio interruption handling
-
-- (void)beginInterruption {
-    if (_decodeManager) {
-        [_decodeManager beginInterruption];
-    }
-}
-
-- (void)endInterruptionWithFlags:(NSUInteger)flags {
-    // re-activate audio session after interruption
-    if (_decodeManager) {
-        [_decodeManager endInterruptionWithFlags:flags];
-    }
-}
-
-#pragma mark iOS 6.x or higher Audio interruption handling
-
-- (void) interruption:(NSNotification*)notification
-{
-    if (_decodeManager) {
-        [_decodeManager interruption:notification];
-    }
-}
 
 #pragma mark - Memory events & deallocation
 
@@ -1772,15 +1529,7 @@ retry:
 
     [_timerInfoViewUpdate release];
     [_viewInfo release];
-    [_barTitle release];
-    [_decodeOptions release];
 
-    [_singleTapGestureRecognizer release];
-    [_doubleTapGestureRecognizer release];
-    [_closeInfoViewGestureRecognizer release];
-
-    [_backgroundColor release];
-    [_renderView release];
     [_labelStatusEmbedded release];
     [_viewControlPanel release];
     [_toolBar release];
@@ -1788,79 +1537,12 @@ retry:
     [_viewBarEmbedded release];
     [_imgViewAudioOnly release];
     [_imgViewExternalScreen release];
-    [_view release];
-    [_contentURLString release];
-    VKLog(kVKLogLevelStateChanges, @"VKPlayerController is deallocated - no more state changes captured...");
-
+    
+    [_closeInfoViewGestureRecognizer release];
+    [_longGestureRecognizer release];
+    
     [super dealloc];
 }
 
 @end
 
-#pragma mark - Error descriptions
-
-static NSString * errorText(VKError errCode)
-{
-    switch (errCode) {
-        case kVKErrorNone:
-            return @"";
-
-        case kVKErrorUnsupportedProtocol:
-            return TR(@"Protocol is not supported");
-            
-        case kVKErrorStreamURLParseError:
-            return TR(@"Stream url or params can not be parsed");
-
-        case kVKErrorOpenStream:
-            return TR(@"Failed to connect to the stream server");
-
-        case kVKErrorStreamInfoNotFound:
-            return TR(@"Can not find any stream info");
-
-        case kVKErrorStreamsNotAvailable:
-            return TR(@"Can not open any A-V stream");
-
-        case kVKErrorAudioCodecNotFound:
-            return TR(@"Audio codec is not found");
-
-        case kVKErrorStreamDurationNotFound:
-            return TR(@"Stream duration is not found");
-
-        case kVKErrorAudioStreamNotFound:
-            return TR(@"Audio stream is not found");
-
-        case kVKErrorVideoCodecNotFound:
-            return TR(@"Video codec is not found");
-
-        case kVKErrorVideoStreamNotFound:
-            return TR(@"Video stream is not found");
-
-        case kVKErrorAudioCodecNotOpened:
-            return TR(@"Audio codec can not be opened");
-            
-        case kVKErrorVideoCodecNotOpened:
-            return TR(@"Video codec can not be opened");
-            
-        case kVKErrorAudioAllocateMemory:
-            return TR(@"Can not allocate memory for Audio");
-            
-        case kVKErrorVideoAllocateMemory:
-            return TR(@"Can not allocate memory for Video");
-            
-        case kVKErrorUnsupportedAudioFormat:
-            return TR(@"Audio format is not supported");
-
-        case kVKErrorAudioStreamAlreadyOpened:
-            return TR(@"Audio is already opened, close the current first, then open again");
-            
-        case kVKErroSetupScaler:
-            return TR(@"Unable to setup scaler");
-            
-        case kVKErrorStreamReadError:
-            return TR(@"Can not read from stream server");
-            
-        case kVKErrorStreamEOFError:
-            return TR(@"End of stream");
-    }
-    return nil;
-}

@@ -2,8 +2,9 @@
 //  EmbeddedSampleViewController.h
 //  VideoKitSample
 //
-//  Created by Tarum Nadus on 12.10.2013.
-//  Copyright (c) 2013 VideoKit. All rights reserved.
+//  Created by Murat Sudan
+//  Copyright (c) 2014 iOS VideoKit. All rights reserved.
+//  Elma DIGITAL
 //
 
 #import <UIKit/UIKit.h>

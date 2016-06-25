@@ -2,8 +2,9 @@
 //  ChannelsManager.m
 //  VideoKitSample
 //
-//  Created by Tarum Nadus on 26.10.2013.
-//  Copyright (c) 2013 VideoKit. All rights reserved.
+//  Created by Murat Sudan
+//  Copyright (c) 2014 iOS VideoKit. All rights reserved.
+//  Elma DIGITAL
 //
 
 #import "ChannelsManager.h"
@@ -15,6 +16,7 @@
 
 @synthesize streamList = _streamList;
 @synthesize fileList = _fileList;
+@synthesize recordList = _recordList;
 
 + (id)sharedManager {
     static ChannelsManager *sharedChannelsManager = nil;
@@ -27,15 +29,38 @@
 
 - (id)init {
     if (self = [super init]) {
-        [self fillChannelList];
+        [self updateChannelList];
     }
     return self;
 }
 
-- (void)fillChannelList {
+- (void)updateChannelList {
+    
+    if (_fileList) {
+        [_fileList removeAllObjects];
+        [_fileList release];
+        _fileList = NULL;
+    }
+    
+    if (_streamList) {
+        [_streamList removeAllObjects];
+        [_streamList release];
+        _streamList = NULL;
+    }
+
+#ifdef VK_RECORDING_CAPABILITY
+    if (_recordList) {
+        [_recordList removeAllObjects];
+        [_recordList release];
+        _recordList = NULL;
+    }
+#endif
     
     _fileList = [[NSMutableArray array] retain];
     _streamList = [[NSMutableArray array] retain];
+#ifdef VK_RECORDING_CAPABILITY
+    _recordList = [[NSMutableArray array] retain];
+#endif
     
     //adding media files
     Channel *cl1 = [Channel channelWithName:@"despicable" addr:[[NSBundle mainBundle] pathForResource:@"despicable" ofType:@"mp4"] description:@"local file sample in bundle" localFile:NO options:NULL];
@@ -46,69 +71,68 @@
     
     Channel *cl3 = [Channel channelWithName:@"kitkat" addr:[[NSBundle mainBundle] pathForResource:@"kitkat" ofType:@"flv"] description:@"local file sample in bundle" localFile:NO options:NULL];
     [_fileList addObject:cl3];
-    
+        
     NSString *documentsDirectory = [NSHomeDirectory() stringByAppendingPathComponent:@"Documents"];
     NSArray *array = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:documentsDirectory error:nil];
     for (NSString *item in array) {
         Channel *c = [Channel channelWithName:item addr:[NSString stringWithFormat:@"%@/%@",documentsDirectory,item] description:@"local file sample in doc" localFile:YES options:NULL];
         [_fileList addObject:c];
     }
-    
+
     //adding remote streams
+
+    Channel *chanMPL = [Channel channelWithName:@"MPL TV" addr:@"rtsp://mpl.dyndns.tv/MPL" description:@"rtsp sample stream" localFile:NO options:[NSDictionary dictionaryWithObject:VKDECODER_OPT_VALUE_RTSP_TRANSPORT_TCP forKey:VKDECODER_OPT_KEY_RTSP_TRANSPORT]];
+    [_streamList addObject:chanMPL];
+
+    Channel *chanBigBuckBunny = [Channel channelWithName:@"Big Buck Bunny" addr:@"rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mov" description:@"rtsp sample stream" localFile:NO options:[NSDictionary dictionaryWithObject:VKDECODER_OPT_VALUE_RTSP_TRANSPORT_TCP forKey:VKDECODER_OPT_KEY_RTSP_TRANSPORT]];
+    [_streamList addObject:chanBigBuckBunny];
+
+    Channel *chanEURONEWS = [Channel channelWithName:@"EURONEWS" addr:@"rtsp://ewns-hls-b-stream.hexaglobe.net/rtpeuronewslive/tr_vidan750_rtp.sdp" description:@"rtsp sample stream" localFile:NO options:[NSDictionary dictionaryWithObject:VKDECODER_OPT_VALUE_RTSP_TRANSPORT_TCP forKey:VKDECODER_OPT_KEY_RTSP_TRANSPORT]];
+    [_streamList addObject:chanEURONEWS];
+
+    Channel *chanBloom = [Channel channelWithName:@"Bloomberg" addr:@"http://mn-l.mncdn.com/bloomberght/bloomberght2/radyodelisi.m3u8" description:@"http sample stream" localFile:NO options:NULL];
+    [_streamList addObject:chanBloom];
+
+    Channel *chanKids = [Channel channelWithName:@"Kids Cena Wiffle" addr:@"rtmp://flvideo.wwe.com/wwevideo/flv/kids/2008/october8-14/kids_cena_wiffle_large.flv" description:@"rtmp sample stream" localFile:NO options:NULL];
+    [_streamList addObject:chanKids];
+
+    Channel *chanBeotel = [Channel channelWithName:@"Beotel Studio B" addr:@"mms://beotelmedia.beotel.net/studiob" description:@"mms sample stream" localFile:NO options:NULL];
+    [_streamList addObject:chanBeotel];
+
+    Channel *chanKjollefjordWebcam = [Channel channelWithName:@"Kjøllefjord webcam" addr:@"http://81.93.105.4/axis-cgi/mjpg/video.cgi?camera=1&resolution=704x576" description:@"mjpeg sample stream" localFile:NO options:[NSDictionary dictionaryWithObject:@"1" forKey:VKDECODER_OPT_KEY_FORCE_MJPEG]];
+    [_streamList addObject:chanKjollefjordWebcam];
+
+    Channel *chanRaiYoyo = [Channel channelWithName:@"Rai Yoyo" addr:@"mmsh://212.162.68.162/rai_yoyo" description:@"mmsh sample stream" localFile:NO options:NULL];
+    [_streamList addObject:chanRaiYoyo];
+
+    Channel *chanJavan = [Channel channelWithName:@"Radio Javan" addr:@"http://stream.radiojavan.com/radiojavan" description:@"http sample audio stream" localFile:NO options:NULL];
+    [_streamList addObject:chanJavan];
+
+    Channel *chanPower = [Channel channelWithName:@"Power FM" addr:@"http://icast.powergroup.com.tr:80/PowerGymTonic/mpeg/128/home" description:@"http sample mp3 audio stream" localFile:NO options:NULL];
+    [_streamList addObject:chanPower];
     
+    Channel *chanKitkat = [Channel channelWithName:@"Kitkat on dropbox" addr:@"https://dl.dropboxusercontent.com/u/6355786/kitkat.flv" description:@"https sample stream" localFile:NO options:NULL];
+    [_streamList addObject:chanKitkat];
     
-    Channel *c01 = [Channel channelWithName:@"NTVa" addr:@"http://api.playem.fm/test.mp4a" description:@"mmsh sample stream" localFile:NO options:NULL];
-    [_streamList addObject:c01];
-    
-    Channel *c1 = [Channel channelWithName:@"NTV" addr:@"mmsh://85.111.3.55/ntv" description:@"mmsh sample stream" localFile:NO options:NULL];
-    [_streamList addObject:c1];
-    
-    Channel *c2 = [Channel channelWithName:@"Cartoon TV" addr:@"rtsp://ws2.gpom.com/cartoon" description:@"rtsp sample stream" localFile:NO options:[NSDictionary dictionaryWithObject:VKDECODER_OPT_VALUE_RTSP_TRANSPORT_TCP forKey:VKDECODER_OPT_KEY_RTSP_TRANSPORT]];
-    [_streamList addObject:c2];
-    
-    Channel *c3 = [Channel channelWithName:@"Sky-news" addr:@"rtsp://live1.wm.skynews.servecast.net/skynews_wmlz_live300k" description:@"rtsp sample stream" localFile:NO options:[NSDictionary dictionaryWithObject:VKDECODER_OPT_VALUE_RTSP_TRANSPORT_TCP forKey:VKDECODER_OPT_KEY_RTSP_TRANSPORT]];
-    [_streamList addObject:c3];
-    
-    Channel *c4 = [Channel channelWithName:@"Bloomberg" addr:@"http://strm-i.glb.pr.medianova.tv:1935/bloomberght/smil:bloomberght.smil/chunklist-b128000.m3u8?wowzasessionid=1108965522" description:@"http sample stream" localFile:NO options:NULL];
-    [_streamList addObject:c4];
-    
-    Channel *c5 = [Channel channelWithName:@"RT 1" addr:@"rtmp://fms5.visionip.tv/live/RT_1" description:@"rtmp sample stream" localFile:NO options:NULL];
-    [_streamList addObject:c5];
-    
-    Channel *c6 = [Channel channelWithName:@"Alanya Sahil" addr:@"rtsp://193.164.132.157/kamera3?MSWMExt=.asf" description:@"rtsp sample IP CAM" localFile:NO options:[NSDictionary dictionaryWithObject:VKDECODER_OPT_VALUE_RTSP_TRANSPORT_TCP forKey:VKDECODER_OPT_KEY_RTSP_TRANSPORT]];
-    [_streamList addObject:c6];
-    
-    Channel *c7 = [Channel channelWithName:@"Amalsviken" addr:@"http://194.17.150.25/axis-cgi/mjpg/video.cgi?camera=&resolution=320x240" description:@"mjpeg sample stream" localFile:NO options:[NSDictionary dictionaryWithObject:@"1" forKey:VKDECODER_OPT_KEY_FORCE_MJPEG]];
-    [_streamList addObject:c7];
-    
-    Channel *c8 = [Channel channelWithName:@"Big Buck Bunny" addr:@"http://www.wowza.com/_h264/BigBuckBunny_175k.mov" description:@"http sample mov video file" localFile:NO options:NULL];
-    [_streamList addObject:c8];
-    
-    Channel *c9 = [Channel channelWithName:@"Iron Man II" addr:@"http://santai.tv/vod/test/test_format_1.3gp" description:@"http sample 3gp video file" localFile:NO options:NULL];
-    [_streamList addObject:c9];
-    
-    Channel *c10 = [Channel channelWithName:@"R.T Erdogan" addr:@"http://dl.dropbox.com/u/6355786/tayyip.mp4" description:@"http sample mp4 video file" localFile:NO options:NULL];
-    [_streamList addObject:c10];
-    
-    Channel *c11 = [Channel channelWithName:@"Show radyo" addr:@"mmsh://84.16.235.90/ShowRadyo" description:@"mmsh sample audio stream" localFile:NO options:NULL];
-    [_streamList addObject:c11];
-    
-    Channel *c12 = [Channel channelWithName:@"Radio Javan" addr:@"http://stream.radiojavan.com/radiojavan" description:@"http sample audio stream" localFile:NO options:NULL];
-    [_streamList addObject:c12];
-    
-    Channel *c13 = [Channel channelWithName:@"Power FM" addr:@"http://46.20.4.43:8130/" description:@"http sample aac+ audio stream" localFile:NO options:NULL];
-    [_streamList addObject:c13];
-    
-    Channel *c14 = [Channel channelWithName:@"Aflam Live TV" addr:@"rtmp://95.211.148.203/live/aflam4youddd?id=152675 -rtmp_swfurl http://mips.tv/content/scripts/eplayer.swf -rtmp_live live -rtmp_pageurl http://mips.tv/embedplayer/aflam4youddd/1/600/380 -rtmp_conn S:OK" description:@"Pass through params - ffplay style" localFile:NO options:[NSDictionary dictionaryWithObject:@"1" forKey:VKDECODER_OPT_KEY_PASS_THROUGH]];
-    [_streamList addObject:c14];
-    
-    Channel *c15 = [Channel channelWithName:@"Fake stream" addr:@"http://stream.fake.com" description:@"fake stream to test failure" localFile:NO options:NULL];
-    [_streamList addObject:c15];
-    
+    Channel *chanFake = [Channel channelWithName:@"Fake stream" addr:@"http://stream.fake.com" description:@"fake stream to test failure" localFile:NO options:NULL];
+    [_streamList addObject:chanFake];
+  
+#ifdef VK_RECORDING_CAPABILITY
+    //adding record files
+    NSString *tmpDirectory = [NSHomeDirectory() stringByAppendingPathComponent:@"tmp"];
+    NSArray *records = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:tmpDirectory error:nil];
+    for (NSString *item in records) {
+        Channel *c = [Channel channelWithName:item addr:[NSString stringWithFormat:@"%@/%@",tmpDirectory,item] description:@"recorded file sample in tmp" localFile:YES options:NULL];
+        [_recordList addObject:c];
+    }
+#endif
 }
 
 - (void)dealloc {
     // Should never be called, but just here for clarity really.
+#ifdef VK_RECORDING_CAPABILITY
+    [_recordList release];
+#endif
     [_streamList release];
     [_fileList release];
     [super dealloc];

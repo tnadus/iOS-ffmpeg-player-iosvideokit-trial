@@ -2,8 +2,9 @@
 //  MultiplePlayersSampleViewController.m
 //  VideoKitSample
 //
-//  Created by Tarum Nadus on 14.10.2013.
-//  Copyright (c) 2013 VideoKit. All rights reserved.
+//  Created by Murat Sudan
+//  Copyright (c) 2014 iOS VideoKit. All rights reserved.
+//  Elma DIGITAL
 //
 
 #import "MultiplePlayersSampleViewController.h"
@@ -30,14 +31,12 @@
         // Custom initialization
         self.tabBarItem.title = @"Multi players";
         self.tabBarItem.image = [UIImage imageNamed:@"vk-tabbar-icons-multi.png"];
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 70000
         if ([[[UIDevice currentDevice] systemVersion] compare:@"7.0" options:NSNumericSearch] != NSOrderedAscending) {
             //running on iOS 7.0 or higher
             [self.tabBarItem setTitleTextAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
                                                      [UIColor colorWithRed:0.0 green:122.0/255.0 blue:1.0 alpha:1.0], NSForegroundColorAttributeName,
                                                      nil] forState:UIControlStateNormal];
         }
-#endif
     }
     return self;
 }
@@ -45,13 +44,17 @@
 - (void)viewDidLoad
 {
     [super viewDidLoad];
-    // Do any additional setup after loading the view from its nib.    
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 70000
+    // Do any additional setup after loading the view from its nib.
     if ([[[UIDevice currentDevice] systemVersion] compare:@"7.0" options:NSNumericSearch] != NSOrderedAscending) {
         //running on iOS 7.0 or higher
         self.edgesForExtendedLayout = UIRectEdgeNone;
     }
-#endif
+    
+    UIRefreshControl *refreshControl = [[[UIRefreshControl alloc] init] autorelease];
+    refreshControl.tintColor = [UIColor whiteColor];
+    refreshControl.attributedTitle = [[[NSAttributedString alloc] initWithString:@"Pull to refresh" attributes:[NSDictionary dictionaryWithObjectsAndKeys:[UIColor whiteColor], NSForegroundColorAttributeName, nil]] autorelease];
+    [refreshControl addTarget:self action:@selector(refreshList:) forControlEvents:UIControlEventValueChanged];
+    [_tableView addSubview:refreshControl];
     
     float widthLabel = 147.0;
     float heightLabel = 121.0;
@@ -61,34 +64,13 @@
     for (int i = 0; i < 4; i++) {
         UILabel *label = [[[UILabel alloc] init] autorelease];
         label.tag = i;
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
-        if ([[[UIDevice currentDevice] systemVersion] compare:@"6.0" options:NSNumericSearch] != NSOrderedAscending) {
-            //running on iOS 6.0 or higher
-            label.textAlignment = NSTextAlignmentCenter;
-        } else {
-            //running on iOS 5.x
-#if __IPHONE_OS_VERSION_MIN_REQUIRED < 60000
-            label.textAlignment = UITextAlignmentCenter;
-#endif
-        }
-#else
-        label.textAlignment = UITextAlignmentCenter;
-#endif
+        label.textAlignment = NSTextAlignmentCenter;
         label.textColor = textColor;
         label.font = [UIFont fontWithName:@"HelveticaNeue" size:30];
         label.text = [NSString stringWithFormat:@"%d", i];
         label.backgroundColor = [UIColor clearColor];
         label.autoresizingMask =  UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
         label.userInteractionEnabled = YES;
-
-        UITapGestureRecognizer *tapGesture = [[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTap:)] autorelease];
-        tapGesture.numberOfTapsRequired = 1;
-        tapGesture.numberOfTouchesRequired = 1;
-        [label addGestureRecognizer:tapGesture];
-
-        UIPinchGestureRecognizer *pinchGesture = [[[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(handlePinch:)] autorelease];
-        [label addGestureRecognizer:pinchGesture];
-
         [_labels addObject:label];
     }
 
@@ -99,23 +81,44 @@
         player.controlStyle = kVKPlayerControlStyleNone;
         player.statusBarHidden = YES;
         [_playerList addObject:player];
-
+        
+        UIView *playerView = player.view;
+        playerView.translatesAutoresizingMaskIntoConstraints = NO;
+        [self.view addSubview:playerView];
+        
+        CGRect rectCurrentPlayer = CGRectZero;
+        
         if (i == 0)
-            player.view.frame = CGRectMake(10.0, 20.0, widthLabel, heightLabel);
+            rectCurrentPlayer = CGRectMake(10.0, 20.0, widthLabel, heightLabel);
         else if (i == 1)
-            player.view.frame = CGRectMake(163.0, 20.0, widthLabel, heightLabel);
+            rectCurrentPlayer = CGRectMake(163.0, 20.0, widthLabel, heightLabel);
         else if (i == 2)
-            player.view.frame = CGRectMake(10.0, 144.0, widthLabel, heightLabel);
+            rectCurrentPlayer = CGRectMake(10.0, 144.0, widthLabel, heightLabel);
         else
-            player.view.frame = CGRectMake(163.0, 144.0, widthLabel, heightLabel);
-
-        [self.view addSubview:player.view];
-
+            rectCurrentPlayer = CGRectMake(163.0, 144.0, widthLabel, heightLabel);
+        
+        // align playerView from the left
+        [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:
+                                   [NSString stringWithFormat:@"H:|-%f-[playerView(==%f)]", rectCurrentPlayer.origin.x, rectCurrentPlayer.size.width]
+                                                                          options:0 metrics:nil views:NSDictionaryOfVariableBindings(playerView)]];
+        // align playerView from the top
+        [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:
+                                   [NSString stringWithFormat:@"V:|-%f-[playerView(==%f)]", rectCurrentPlayer.origin.y, rectCurrentPlayer.size.height] options:0 metrics:nil views:NSDictionaryOfVariableBindings(playerView)]];
+        
         UILabel *label = [_labels objectAtIndex:i];
-        label.frame = player.view.bounds;
+        label.translatesAutoresizingMaskIntoConstraints = NO;
         [player.view addSubview:[_labels objectAtIndex:i]];
+        
+        // center label horizontally in playerView
+        [playerView addConstraint:[NSLayoutConstraint constraintWithItem:label attribute:NSLayoutAttributeCenterX relatedBy:NSLayoutRelationEqual toItem:playerView attribute:NSLayoutAttributeCenterX multiplier:1.0 constant:0.0]];
+        // center label vertically in playerView
+        [playerView addConstraint:[NSLayoutConstraint constraintWithItem:label attribute:NSLayoutAttributeCenterY relatedBy:NSLayoutRelationEqual toItem:playerView attribute:NSLayoutAttributeCenterY multiplier:1.0 constant:0.0]];
+        // width constraint
+        [playerView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[label(==20)]" options:0 metrics:nil views:NSDictionaryOfVariableBindings(label)]];
+        // height constraint
+        [playerView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[label(==24)]" options:0 metrics:nil views:NSDictionaryOfVariableBindings(label)]];
     }
-
+    
     _selectedViewIndex = 0;
 
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(onPlayerEnterFullScreen:) name:kVKPlayerWillEnterFullscreenNotification object:nil];
@@ -143,50 +146,30 @@
     }
 }
 
-#pragma mark View actions 
+#pragma mark - Actions
 
-- (void)handleTap:(UITapGestureRecognizer *) sender {
-    if (sender.state == UIGestureRecognizerStateEnded) {
-        UILabel *l = (UILabel *)sender.view;
-        _selectedViewIndex = l.tag;
-
-        [UIView animateWithDuration:0.3 delay:0.0 options: UIViewAnimationCurveEaseOut|UIViewAnimationOptionAllowUserInteraction
-                         animations:^{
-                             [l setTransform:CGAffineTransformMakeScale(1.6, 1.6)]; }
-                         completion:^(BOOL finished) {
-                             [UIView animateWithDuration:0.3 delay:0.0 options: UIViewAnimationOptionAllowUserInteraction animations:^{
-                                 [l setTransform:CGAffineTransformMakeScale(0.7, 0.7)];}
-                                              completion:^(BOOL finished) {
-                                                  [UIView animateWithDuration:0.3 delay:0.0 options: UIViewAnimationOptionAllowUserInteraction animations:^{
-                                                      [l setTransform:CGAffineTransformMakeScale(1.0, 1.0)];}
-                                                                   completion:^(BOOL finished) {
-                                                                   }];
-                                              }];
-                         }];
-    }
-}
-
-- (void)handlePinch: (UIPinchGestureRecognizer *) sender {
-    if (sender.state == UIGestureRecognizerStateEnded) {
-        if (_playerList.count) {
-            VKPlayerController *player = [_playerList objectAtIndex:sender.view.tag];
-            if (sender.scale > 1.0) {
-                [player setFullScreen:YES];
-            }
-        }
-    }
+- (void)refreshList:(id)sender {
+    
+    [[ChannelsManager sharedManager] updateChannelList];
+    [_tableView reloadData];
+    [(UIRefreshControl *)sender endRefreshing];
 }
 
 #pragma mark TableView delegate methods
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
-    return 2;
+    return 3;
 }
 
 - (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
     if (section == 0) {
         return @"Local media files";
     }
+#ifdef VK_RECORDING_CAPABILITY
+    else if (section == 1) {
+        return @"Recorded files";
+    }
+#endif
     return @"Remote streaming urls";
 }
 
@@ -194,6 +177,11 @@
     if (section == 0) {
         return [[[ChannelsManager sharedManager] fileList] count];
     }
+#ifdef VK_RECORDING_CAPABILITY
+    else if (section == 1) {
+        return [[[ChannelsManager sharedManager] recordList] count];
+    }
+#endif
     return [[[ChannelsManager sharedManager] streamList] count];
 }
 
@@ -202,26 +190,38 @@
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:cellId];
     if (!cell) {
         cell = [[[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:cellId] autorelease];
-
+        
         UIView *topLine = [[[UIView alloc] initWithFrame:CGRectMake(0.0f, 0.0f, [UIScreen mainScreen].bounds.size.height, 1.0f)] autorelease];
 		topLine.backgroundColor = [UIColor colorWithRed:1.1 green:1.1 blue:1.11 alpha:0.5];
         [cell.contentView addSubview:topLine];
-
+        
         UIView *bottomLine = [[[UIView alloc] initWithFrame:CGRectMake(0.0f, 43.0f, [UIScreen mainScreen].bounds.size.height, 1.0f)] autorelease];
 		bottomLine.backgroundColor =[UIColor colorWithRed:0.78 green:0.78 blue:0.79 alpha:0.5];
 		[cell.contentView addSubview:bottomLine];
-
+        
         cell.selectionStyle = UITableViewCellSelectionStyleGray;
-        cell.textLabel.font = [UIFont fontWithName:@"HelveticaNeue" size:16];
+        cell.textLabel.font = [UIFont fontWithName:@"HelveticaNeue" size:18];
         cell.detailTextLabel.font = [UIFont fontWithName:@"HelveticaNeue-Light" size:14];
         cell.detailTextLabel.textColor = [UIColor colorWithRed:0.0 green:122.0/255.0 blue:1.0 alpha:1.0];
     }
-
-    NSArray *source = (indexPath.section == 0) ?  [[ChannelsManager sharedManager] fileList] : [[ChannelsManager sharedManager] streamList];
+    
+    NSArray *source;
+    if (indexPath.section == 0) {
+        source = [[ChannelsManager sharedManager] fileList];
+    }
+#ifdef VK_RECORDING_CAPABILITY
+    else if (indexPath.section == 1) {
+        source = [[ChannelsManager sharedManager] recordList];
+    }
+#endif
+    else {
+        source = [[ChannelsManager sharedManager] streamList];
+    }
+    
     Channel *channel = [source objectAtIndex:indexPath.row];
     cell.textLabel.text = [channel name];
     cell.detailTextLabel.text = [channel description];
-
+    
     return cell;
 }
 
@@ -229,19 +229,48 @@
     cell.backgroundColor = [UIColor colorWithRed:0.94 green:0.94 blue:0.95 alpha:1.0];
 }
 
--(void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
-    NSArray *source = (indexPath.section == 0) ?  [[ChannelsManager sharedManager] fileList] : [[ChannelsManager sharedManager] streamList];
-    Channel *channel = [source objectAtIndex:indexPath.row];
-    NSString *urlString = [channel urlAddress];
-    NSDictionary *options = [channel options];
-
-    VKPlayerController *selectedPlayer = [_playerList objectAtIndex:_selectedViewIndex];
-
-    [selectedPlayer stop];
-    selectedPlayer.contentURLString = urlString;
-    selectedPlayer.decoderOptions = options;
-    [selectedPlayer play];
+    NSArray *source;
+    if (indexPath.section == 0) {
+        source = [[ChannelsManager sharedManager] fileList];
+    }
+#ifdef VK_RECORDING_CAPABILITY
+    else if (indexPath.section == 1) {
+        source = [[ChannelsManager sharedManager] recordList];
+    }
+#endif
+    else {
+        source = [[ChannelsManager sharedManager] streamList];
+    }
+    
+    UILabel *l = _labels[_selectedViewIndex];
+    
+    [UIView animateWithDuration:0.3 delay:0.0 options: UIViewAnimationCurveEaseOut|UIViewAnimationOptionAllowUserInteraction
+                     animations:^{
+                         [l setTransform:CGAffineTransformMakeScale(1.6, 1.6)]; }
+                     completion:^(BOOL finished) {
+                         
+                         Channel *channel = [source objectAtIndex:indexPath.row];
+                         NSString *urlString = [channel urlAddress];
+                         NSDictionary *options = [channel options];
+                         
+                         VKPlayerController *selectedPlayer = [_playerList objectAtIndex:_selectedViewIndex];
+                         [selectedPlayer stop];
+                         selectedPlayer.contentURLString = urlString;
+                         selectedPlayer.decoderOptions = options;
+                         [selectedPlayer play];
+                         _selectedViewIndex = (_selectedViewIndex + 1)%4;
+                         
+                         [UIView animateWithDuration:0.3 delay:0.0 options: UIViewAnimationOptionAllowUserInteraction animations:^{
+                             [l setTransform:CGAffineTransformMakeScale(0.7, 0.7)];}
+                                          completion:^(BOOL finished) {
+                                              [UIView animateWithDuration:0.3 delay:0.0 options: UIViewAnimationOptionAllowUserInteraction animations:^{
+                                                  [l setTransform:CGAffineTransformMakeScale(1.0, 1.0)];}
+                                                               completion:^(BOOL finished) {
+                                                               }];
+                                          }];
+                     }];
 }
 
 #pragma mark -Player callbacks

@@ -2,32 +2,28 @@
 //  AppDelegate.m
 //  VideoKit
 //
-//  Created by Tarum Nadus on 11/16/12.
-//  Copyright (c) 2013-2014 VideoKit. All rights reserved.
+//  Created by Murat Sudan
+//  Copyright (c) 2014 iOS VideoKit. All rights reserved.
+//  Elma DIGITAL
 //
 
 #import "AppDelegate.h"
 #import "FullScreenSampleViewController.h"
 #import "EmbeddedSampleViewController.h"
 #import "MultiplePlayersSampleViewController.h"
-#import "OtherViewController.h"
 
 #define WRITE_LOGS_TO_FILE         0
 
 @implementation AppDelegate
 
 @synthesize navbarFSSampleVc = _navbarFSSampleVc;
-@synthesize navbarOtherVc = _navbarOtherVc;
 @synthesize channelListVc = _channelListVc;
 @synthesize tabBarController = _tabBarController;
 @synthesize subviewDemoVc = _subviewDemoVc;
 @synthesize multiPlayersVc = _multiPlayersVc;
-@synthesize otherVc = _otherVc;
 
 - (void)dealloc
 {
-    [_otherVc release];
-    [_navbarOtherVc release];
     [_multiPlayersVc release];
     [_channelListVc release];
     [_navbarFSSampleVc release];
@@ -57,11 +53,8 @@
 
     self.subviewDemoVc = [[[EmbeddedSampleViewController alloc] initWithNibName:@"EmbeddedSampleViewController" bundle:nil] autorelease];
     self.multiPlayersVc = [[[MultiplePlayersSampleViewController alloc] initWithNibName:@"MultiplePlayersSampleViewController" bundle:nil] autorelease];
-    
-    self.otherVc = [[[OtherViewController alloc] initWithNibName:@"OtherViewController" bundle:nil] autorelease];
-    self.navbarOtherVc = [[[UINavigationController alloc] initWithRootViewController:self.otherVc] autorelease];
 
-    self.tabBarController.viewControllers = [NSArray arrayWithObjects:_navbarFSSampleVc, _subviewDemoVc, _multiPlayersVc, _navbarOtherVc,nil];
+    self.tabBarController.viewControllers = [NSArray arrayWithObjects:_navbarFSSampleVc, _subviewDemoVc, _multiPlayersVc,nil];
     self.window.rootViewController = self.tabBarController;
     [self addIntroView:NO];
     [self.window makeKeyAndVisible];
@@ -76,7 +69,7 @@
     
     EAIntroPage *page1 = [EAIntroPage page];
     page1.title = @"Welcome to VideoKit Sample";
-    page1.desc = @"This sample project includes full screen and embedded representation of video player. Also, multi players tab is a bonus. (You can reach this welcome screen any time in other tab)";
+    page1.desc = @"This sample project includes full screen and embedded representation of video player. Also, multi players tab is a bonus.";
     page1.titleImage = [UIImage imageNamed:@"intro-screen-1"];
     
     EAIntroPage *page2 = [EAIntroPage page];
@@ -85,11 +78,16 @@
     page2.titleImage = [UIImage imageNamed:@"intro-screen-2"];
     
     EAIntroPage *page3 = [EAIntroPage page];
-    page3.title = @"Questions";
-    page3.desc = @"You can see the documentation and F.A.Q in the other tab section to get answers to your questions";
+    page3.title = @"Gestures";
+    page3.desc = @"In this sample, You can use gestures on player, tap for displaying player user interface, pinch in/out - double tap for zoom in/out, and long press for transitining between fullscreen & embed window states.";
     page3.titleImage = [UIImage imageNamed:@"intro-screen-3"];
     
-    EAIntroView *intro = [[EAIntroView alloc] initWithFrame:self.window.bounds andPages:@[page1,page2,page3]];
+    EAIntroPage *page4 = [EAIntroPage page];
+    page4.title = @"Questions";
+    page4.desc = @"You can find the documentation in documentation folder, for further support you can e-mail : support@iosvideokit.com";
+    page4.titleImage = [UIImage imageNamed:@"intro-screen-4"];
+    
+    EAIntroView *intro = [[EAIntroView alloc] initWithFrame:self.window.bounds andPages:@[page1,page2,page3,page4]];
     intro.bgImage = [UIImage imageNamed:@"introBg"];
     [intro setDelegate:self];
     [intro showInView:self.tabBarController.view animateDuration:0.0];

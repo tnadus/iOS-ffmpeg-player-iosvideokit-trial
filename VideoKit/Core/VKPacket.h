@@ -1,9 +1,10 @@
 //
 //  MyPacket.h
-//  MMSTv
+//  VideoKit
 //
-//  Created by Tarum Nadus on 6/15/12.
-//  Copyright (c) 2013-2014 __MyCompanyName__. All rights reserved.
+//  Created by Murat Sudan
+//  Copyright (c) 2014 iOS VideoKit. All rights reserved.
+//  Elma DIGITAL
 //
 
 #import <Foundation/Foundation.h>
@@ -29,13 +30,25 @@
 @property (nonatomic, readonly) int size;
 
 ///Encoded data in int16_t format
-@property (nonatomic, readonly) int16_t* samples;
+@property (nonatomic, readonly) NSData *samples;
 
 ///The presenting time stamp of packet
 @property (nonatomic, readonly) double pts;
 
 ///The decoding time stamp of packet
 @property (nonatomic, readonly) double dts;
+
+///The duration of packet
+@property (nonatomic, assign) int duration;
+
+///The modified presenting time stamp of packet, used for recording
+@property (nonatomic, assign) double modifiedPts;
+
+///The modified decoding time stamp of packet, used for recording
+@property (nonatomic, assign) double modifiedDts;
+
+///The modified duration of packet, used for recording
+@property (nonatomic, assign) int64_t modifiedDuration;
 
 ///The byte position of packet in stream
 @property (nonatomic, readonly) int64_t pos;
@@ -45,5 +58,11 @@
 
 ///Indicates whether if the packet is a special flush packet or not
 @property (nonatomic, readonly) BOOL flush;
+
+///Indicates that the packet belongs to Audio, Video or other stream
+@property (nonatomic, readonly) int streamIndex;
+
+///Indicates flags of AVPacket
+@property (nonatomic, readonly) int flags;
 
 @end

@@ -2,12 +2,19 @@
 //  VKVideoDecoder.h
 //  VideoKit
 //
-//  Created by Tarum Nadus on 11/16/12.
-//  Copyright (c) 2013-2014 VideoKit. All rights reserved.
+//  Created by Murat Sudan
+//  Copyright (c) 2014 iOS VideoKit. All rights reserved.
+//  Elma DIGITAL
 //
 
 #import <Foundation/Foundation.h>
 #import "VKDecoder.h"
+
+/// A notification when a video frame is decoded and ready for render.
+extern NSString *kVKVideoFrameReadyForRenderNotification;
+
+/// A userInfo key for kVKVideoFrameReadyForRenderNotification notification to get videoframe object
+extern NSString *kVKVideoFrame;
 
 @class VKAudioDecoder;
 
@@ -46,13 +53,6 @@
  */
 - (void)schedulePicture;
 
-/**
- *  This represents the last Video packet's presenting timestamp value based on stream's time base
- *
- *  @return pts (presenting time stamp) * stream->time_base
- */
-- (double)videoClock;
-
 /* decoder action on state change */
 
 /**
@@ -78,6 +78,11 @@
  *  @param value Specify YES for end of file is reached or NO for continue playing
  */
 - (void)setEOF:(BOOL)value;
+
+/**
+ *  Start to decode video packets (This method needs to be called after a succesful connection)
+ */
+- (int)decodeVideo;
 
 /// A Boolean that indicates whether if the decode process is done not not, used for managing threads
 @property (nonatomic, readonly) BOOL decodeJobIsDone;

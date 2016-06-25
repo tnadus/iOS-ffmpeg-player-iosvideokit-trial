@@ -267,7 +267,7 @@
 }
 
 - (void)crossDissolveForOffset:(float)offset {
-    NSInteger page = (int)(offset);
+    int page = (int)(offset);
     float alphaValue = offset - (int)offset;
     
     if (alphaValue < 0 && self.currentPageIndex == 0){

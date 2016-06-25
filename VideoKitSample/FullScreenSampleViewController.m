@@ -2,8 +2,9 @@
 //  FullScreenSampleViewController.m
 //  VideoKit
 //
-//  Created by Tarum Nadus on 11/16/12.
-//  Copyright (c) 2013-2014 VideoKit. All rights reserved.
+//  Created by Murat Sudan
+//  Copyright (c) 2014 iOS VideoKit. All rights reserved.
+//  Elma DIGITAL
 //
 
 #import "FullScreenSampleViewController.h"
@@ -24,14 +25,12 @@
         self.title = @"Fullscreen Sample";
         self.tabBarItem.title = @"Fullscreen";
         self.tabBarItem.image = [UIImage imageNamed:@"vk-tabbar-icons-fullscreen.png"];
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 70000
         if ([[[UIDevice currentDevice] systemVersion] compare:@"7.0" options:NSNumericSearch] != NSOrderedAscending) {
             //running on iOS 7.0 or higher
             [self.tabBarItem setTitleTextAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
                                                      [UIColor colorWithRed:0.0 green:122.0/255.0 blue:1.0 alpha:1.0], NSForegroundColorAttributeName,
                                                      nil] forState:UIControlStateNormal];
         }
-#endif
     }
     return self;
 }
@@ -42,26 +41,45 @@
 {
     [super viewDidLoad];
     // Do any additional setup after loading the view from its nib.
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 70000
     if ([[[UIDevice currentDevice] systemVersion] compare:@"7.0" options:NSNumericSearch] != NSOrderedAscending) {
         //running on iOS 7.0 or higher
         self.edgesForExtendedLayout = UIRectEdgeNone;
         self.navigationItem.rightBarButtonItem.tintColor = [UIColor colorWithRed:0.0 green:122.0/255.0 blue:1.0 alpha:1.0];
     }
-#endif
     self.navigationController.navigationBar.tintColor = [UIColor lightGrayColor];
+    
+    UIRefreshControl *refreshControl = [[[UIRefreshControl alloc] init] autorelease];
+    refreshControl.tintColor = [UIColor whiteColor];
+    refreshControl.attributedTitle = [[[NSAttributedString alloc] initWithString:@"Pull to refresh" attributes:[NSDictionary dictionaryWithObjectsAndKeys:[UIColor whiteColor], NSForegroundColorAttributeName, nil]] autorelease];
+    [refreshControl addTarget:self action:@selector(refreshList:) forControlEvents:UIControlEventValueChanged];
+    [_tableView addSubview:refreshControl];
 }
+
+#pragma mark - Actions
+
+- (void)refreshList:(id)sender {
+    
+    [[ChannelsManager sharedManager] updateChannelList];
+    [_tableView reloadData];
+    [(UIRefreshControl *)sender endRefreshing];
+}
+
 
 #pragma mark TableView delegate methods
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
-    return 2;
+    return 3;
 }
 
 - (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
     if (section == 0) {
         return @"Local media files";
     }
+#ifdef VK_RECORDING_CAPABILITY
+    else if (section == 1) {
+        return @"Recorded files";
+    }
+#endif
     return @"Remote streaming urls";
 }
 
@@ -69,6 +87,11 @@
     if (section == 0) {
         return [[[ChannelsManager sharedManager] fileList] count];
     }
+#ifdef VK_RECORDING_CAPABILITY
+    else if (section == 1) {
+        return [[[ChannelsManager sharedManager] recordList] count];
+    }
+#endif
     return [[[ChannelsManager sharedManager] streamList] count];
 }
 
@@ -92,7 +115,18 @@
         cell.detailTextLabel.textColor = [UIColor colorWithRed:0.0 green:122.0/255.0 blue:1.0 alpha:1.0];
     }
 
-    NSArray *source = (indexPath.section == 0) ?  [[ChannelsManager sharedManager] fileList] : [[ChannelsManager sharedManager] streamList];
+    NSArray *source;
+    if (indexPath.section == 0) {
+        source = [[ChannelsManager sharedManager] fileList];
+    }
+#ifdef VK_RECORDING_CAPABILITY
+    else if (indexPath.section == 1) {
+        source = [[ChannelsManager sharedManager] recordList];
+    }
+#endif
+    else {
+        source = [[ChannelsManager sharedManager] streamList];
+    }
     
     Channel *channel = [source objectAtIndex:indexPath.row];
     cell.textLabel.text = [channel name];
@@ -107,29 +141,31 @@
 
 -(void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
-    NSArray *source = (indexPath.section == 0) ?  [[ChannelsManager sharedManager] fileList] : [[ChannelsManager sharedManager] streamList];
+    NSArray *source;
+    if (indexPath.section == 0) {
+        source = [[ChannelsManager sharedManager] fileList];
+    }
+#ifdef VK_RECORDING_CAPABILITY
+    else if (indexPath.section == 1) {
+        source = [[ChannelsManager sharedManager] recordList];
+    }
+#endif
+    else {
+        source = [[ChannelsManager sharedManager] streamList];
+    }
     Channel *channel = [source objectAtIndex:indexPath.row];
     NSString *urlString = [[channel urlAddress] retain];
     NSDictionary *options = [channel options];
     
     VKPlayerViewController *playerVc = [[[VKPlayerViewController alloc] initWithURLString:urlString decoderOptions:options] autorelease];
     playerVc.barTitle = [channel name];
-    playerVc.statusBarHidden = NO;
+    playerVc.statusBarHidden = YES;
     playerVc.delegate = self;
-    
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
-    if ([[[UIDevice currentDevice] systemVersion] compare:@"6.0" options:NSNumericSearch] != NSOrderedAscending) {
-        //running on iOS 6.0 or higher
-        [self.navigationController presentViewController:playerVc animated:YES completion:NULL];
-    } else {
-        //running on iOS 5.x
-#if __IPHONE_OS_VERSION_MIN_REQUIRED < 60000
-        [self.navigationController presentModalViewController:playerVc animated:YES];
+#ifdef VK_RECORDING_CAPABILITY
+    playerVc.recordingEnabled = YES;
 #endif
-    }
-#else
-    [self.navigationController presentModalViewController:playerVc animated:YES];
-#endif
+    [self.navigationController presentViewController:playerVc animated:YES completion:NULL];
+    [urlString release];
 }
 
 #pragma mark - VKPlayerViewController callback
@@ -149,6 +185,20 @@
         }
     }
 }
+
+#ifdef VK_RECORDING_CAPABILITY
+- (void)onPlayerViewControllerDidStartRecordingWithPath:(NSString *)recordPath {
+    NSLog(@"Recording started with path = %@", recordPath);
+}
+
+- (void)onPlayerViewControllerDidStopRecordingWithPath:(NSString *)recordPath error:(VKErrorRecorder)error {
+    if (error == kVKErrorNone) {
+        NSLog(@"Recording is ended with success");
+    } else {
+        NSLog(@"Recording is ended with error = %d", (int)error);
+    }
+}
+#endif
 
 #pragma mark Memory events
 

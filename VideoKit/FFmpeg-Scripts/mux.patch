@@ -1,0 +1,19 @@
+--- mux.c	2016-02-09 00:14:06.000000000 +0200
++++ mux-m.c	2016-02-09 00:14:27.000000000 +0200
+@@ -542,14 +542,14 @@
+         av_log(s, AV_LOG_ERROR,
+                "Application provided invalid, non monotonically increasing dts to muxer in stream %d: %s >= %s\n",
+                st->index, av_ts2str(st->cur_dts), av_ts2str(pkt->dts));
+-        return AVERROR(EINVAL);
++        //return AVERROR(EINVAL);
+     }
+     if (pkt->dts != AV_NOPTS_VALUE && pkt->pts != AV_NOPTS_VALUE && pkt->pts < pkt->dts) {
+         av_log(s, AV_LOG_ERROR,
+                "pts (%s) < dts (%s) in stream %d\n",
+                av_ts2str(pkt->pts), av_ts2str(pkt->dts),
+                st->index);
+-        return AVERROR(EINVAL);
++        //return AVERROR(EINVAL);
+     }
+ 
+     if (s->debug & FF_FDEBUG_TS)

@@ -2,8 +2,9 @@
 //  VKGLES2View.m
 //  VideoKit
 //
-//  Created by Tarum Nadus on 30.05.2013.
-//  Copyright (c) 2013 Tarum Nadus. All rights reserved.
+//  Created by Murat Sudan
+//  Copyright (c) 2014 iOS VideoKit. All rights reserved.
+//  Elma DIGITAL
 //
 
 #import <UIKit/UIKit.h>
@@ -22,10 +23,11 @@
 *  Initialize openGL view with DecodeManager
 *
 *  @param decoder VKDecodeManager object to be feed from
+*  @param bounds bounds of the render view
 *
 *  @return 0 for succes and non-zero for failure
 */
-- (int)initGLWithDecodeManager:(VKDecodeManager *)decoder;
+- (int)initGLWithDecodeManager:(VKDecodeManager *)decoder bounds:(CGRect)bounds;
 
 /**
  *  Enable-disable retina frames if device has retina support, default is YES
@@ -33,6 +35,12 @@
  *  @param value Specify YES for enabling or NO for disabling Retina
  */
 - (void)enableRetina:(BOOL)value;
+
+
+- (CGRect)exactFrameRectForSize:(CGSize)boundsSize fillScreen:(BOOL)fillScreen;
+
+
+- (void)updateOpenGLFrameSizes;
 
 /** 
  * Get snapshot of glview in UIImage format
@@ -42,15 +50,10 @@
 - (UIImage *)snapshot;
 
 /**
- *  update the openGL screen with new frame
- *
- *  @param vidFrame needs VKVideoFrame object to draw screen
- */
-- (void)updateScreenWithFrame:(VKVideoFrame *)vidFrame;
-
-/**
  *  destroy openGL view
  */
 - (void)shutdown;
+
+@property (nonatomic, assign) BOOL fillScreen;
 
 @end
