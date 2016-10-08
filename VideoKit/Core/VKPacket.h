@@ -39,7 +39,7 @@
 @property (nonatomic, readonly) double dts;
 
 ///The duration of packet
-@property (nonatomic, assign) int duration;
+@property (nonatomic, assign) int64_t duration;
 
 ///The modified presenting time stamp of packet, used for recording
 @property (nonatomic, assign) double modifiedPts;

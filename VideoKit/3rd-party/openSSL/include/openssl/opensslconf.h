@@ -119,8 +119,8 @@ extern "C" {
 
 #if !(defined(VMS) || defined(__VMS)) /* VMS uses logical names instead */
 #if defined(HEADER_CRYPTLIB_H) && !defined(OPENSSLDIR)
-#define ENGINESDIR "/Users/muratsudan/Desktop/SDK_ALL/ALL_VIDEOSTREAMSDK/SRC/VideoKit/2.5/VideoKit+iOSSample/videokit/FFmpeg-Scripts/openSSL/bin/iPhoneSimulator9.3-i386.sdk/lib/engines"
-#define OPENSSLDIR "/Users/muratsudan/Desktop/SDK_ALL/ALL_VIDEOSTREAMSDK/SRC/VideoKit/2.5/VideoKit+iOSSample/videokit/FFmpeg-Scripts/openSSL/bin/iPhoneSimulator9.3-i386.sdk"
+#define ENGINESDIR "/Users/muratsudan/Desktop/SDK_ALL/ALL_VIDEOSTREAMSDK/SRC/VideoKit/2.6a/VideoKit+iOSSample/videokit/FFmpeg-Scripts/openSSL/bin/iPhoneSimulator9.3-i386.sdk/lib/engines"
+#define OPENSSLDIR "/Users/muratsudan/Desktop/SDK_ALL/ALL_VIDEOSTREAMSDK/SRC/VideoKit/2.6a/VideoKit+iOSSample/videokit/FFmpeg-Scripts/openSSL/bin/iPhoneSimulator9.3-i386.sdk"
 #endif
 #endif
 

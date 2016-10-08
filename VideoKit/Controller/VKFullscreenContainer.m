@@ -31,10 +31,6 @@
 - (void) loadView {
     self.view = [[[UIView alloc] initWithFrame:CGRectZero] autorelease];
     self.view.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
-    if ([[[UIDevice currentDevice] systemVersion] compare:@"8.0" options:NSNumericSearch] == NSOrderedAscending) {
-        //running on iOS 7.x
-        self.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
-    }
 }
 
 - (void)viewDidLoad {
@@ -56,51 +52,12 @@
     
     UIWindow *keyWindow = [[[UIApplication sharedApplication] windows] lastObject];
     
-    if ([[[UIDevice currentDevice] systemVersion] compare:@"8.0" options:NSNumericSearch] == NSOrderedAscending) {
-        //running on iOS 7.x
-        [[[keyWindow subviews] objectAtIndex:0] addSubview:_playerController.view];
-        
-        [UIView animateWithDuration:duration animations:^{
-        } completion:^(BOOL finished) {
-            [self dismissViewControllerAnimated:YES completion:^{
-                [_superviewBefore addSubview:_playerController.view];
-                
-                if (![_playerController.view translatesAutoresizingMaskIntoConstraints]) {
-                    NSDictionary *metricsSuperView = @{@"playerview_left": @(_rectBefore.origin.x), @"playerview_top": @(_rectBefore.origin.y),
-                                                       @"playerview_width": @(_rectBefore.size.width), @"playerview_height": @(_rectBefore.size.height)};
-                    UIView *playerView = _playerController.view;
-                    // align playerView from the left
-                    [_superviewBefore addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-playerview_left-[playerView(==playerview_width)]" options:0 metrics:metricsSuperView views:NSDictionaryOfVariableBindings(playerView)]];
-                    // align playerView from the top
-                    [_superviewBefore addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-playerview_top-[playerView(==playerview_height)]" options:0 metrics:metricsSuperView views:NSDictionaryOfVariableBindings(playerView)]];
-                } else {
-                    _playerController.view.frame = _rectBefore;
-                    _playerController.view.autoresizingMask = _autoresizingMaskBefore;
-                }
-                
-                if ([_playerController mainScreenIsMobile]) {
-                    [(VKScrollViewContainer *)[_playerController scrollView] setDisableCenterViewNow:NO];
-                }
-                
-                [_playerController.scrollView setNeedsLayout];
-                [_playerController.scrollView layoutIfNeeded];
-                [_playerController.renderView updateOpenGLFrameSizes];
-                
-                [UIView animateWithDuration:0.1 animations:^{
-                    _playerController.view.backgroundColor = [UIColor blackColor];
-                    _playerController.scrollView.backgroundColor = _playerController.view.backgroundColor;
-                }];
-            }];
-        }];
-        
-    } else {
-        
 #if !TARGET_OS_TV
         //first animation - start coloring clearcolor
         
         [(VKScrollViewContainer *)[_playerController scrollView] setDisableCenterViewNow:YES];
         
-        __block NSLayoutConstraint *constraintTopByWin, *constraintLeftByWin, *constraintWidthByWin, *constraintHeightByWin;
+        __block NSLayoutConstraint *constraintTopByWin = nil, *constraintLeftByWin = nil, *constraintWidthByWin = nil, *constraintHeightByWin = nil;
         
         [UIView animateWithDuration:0.2 animations:^{
             self.view.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.0];
@@ -111,21 +68,43 @@
             if (![_playerController.view translatesAutoresizingMaskIntoConstraints]) {
                 //Set Autolayout constraints self.view
                 
-                // align self.view from the top
-                constraintTopByWin = [NSLayoutConstraint constraintWithItem:_playerController.view attribute:NSLayoutAttributeTop relatedBy:NSLayoutRelationEqual toItem:keyWindow attribute:NSLayoutAttributeTop multiplier:1.0 constant:0.0];
-                [keyWindow addConstraint:constraintTopByWin];
+                for (NSLayoutConstraint *constaint in keyWindow.constraints) {
+                    if (constaint.firstItem == _playerController.view) {
+                        if (constaint.firstAttribute == NSLayoutAttributeTop) {
+                            constraintTopByWin = constaint;
+                        } else if (constaint.firstAttribute == NSLayoutAttributeLeft) {
+                            constraintLeftByWin = constaint;
+                        } else if (constaint.firstAttribute == NSLayoutAttributeWidth) {
+                            constraintWidthByWin = constaint;
+                        } else if (constaint.firstAttribute == NSLayoutAttributeHeight) {
+                            constraintHeightByWin = constaint;
+                        }
+                    }
+                }
                 
-                // align self.view from the left
-                constraintLeftByWin = [NSLayoutConstraint constraintWithItem:_playerController.view attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:keyWindow attribute:NSLayoutAttributeLeft multiplier:1.0 constant:0.0];
-                [keyWindow addConstraint:constraintLeftByWin];
+                if (!constraintTopByWin) {
+                    // align self.view from the top
+                    constraintTopByWin = [NSLayoutConstraint constraintWithItem:_playerController.view attribute:NSLayoutAttributeTop relatedBy:NSLayoutRelationEqual toItem:keyWindow attribute:NSLayoutAttributeTop multiplier:1.0 constant:keyWindow.frame.origin.y];
+                    [keyWindow addConstraint:constraintTopByWin];
+                }
                 
-                // self.view width constant
-                constraintWidthByWin = [NSLayoutConstraint constraintWithItem:_playerController.view attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:NULL attribute:NSLayoutAttributeNotAnAttribute multiplier:1.0 constant:keyWindow.frame.size.width];
-                [keyWindow addConstraint:constraintWidthByWin];
+                if (!constraintLeftByWin) {
+                    // align self.view from the left
+                    constraintLeftByWin = [NSLayoutConstraint constraintWithItem:_playerController.view attribute:NSLayoutAttributeLeft relatedBy:NSLayoutRelationEqual toItem:keyWindow attribute:NSLayoutAttributeLeft multiplier:1.0 constant:keyWindow.frame.origin.x];
+                    [keyWindow addConstraint:constraintLeftByWin];
+                }
                 
-                // self.view height constant
-                constraintHeightByWin = [NSLayoutConstraint constraintWithItem:_playerController.view attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:NULL attribute:NSLayoutAttributeNotAnAttribute multiplier:1.0 constant:keyWindow.frame.size.height];
-                [keyWindow addConstraint:constraintHeightByWin];
+                if (!constraintWidthByWin) {
+                    // self.view width constant
+                    constraintWidthByWin = [NSLayoutConstraint constraintWithItem:_playerController.view attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:NULL attribute:NSLayoutAttributeNotAnAttribute multiplier:1.0 constant:keyWindow.frame.size.width];
+                    [keyWindow addConstraint:constraintWidthByWin];
+                }
+                
+                if (!constraintHeightByWin) {
+                    // self.view height constant
+                    constraintHeightByWin = [NSLayoutConstraint constraintWithItem:_playerController.view attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:NULL attribute:NSLayoutAttributeNotAnAttribute multiplier:1.0 constant:keyWindow.frame.size.height];
+                    [keyWindow addConstraint:constraintHeightByWin];
+                }
             }
             
             [self dismissViewControllerAnimated:NO completion:^{
@@ -135,8 +114,8 @@
                         constraintLeftByWin.constant = _rectBefore.origin.x;
                         constraintWidthByWin.constant = _rectBefore.size.width;
                         constraintHeightByWin.constant = _rectBefore.size.height;
-                        [_playerController.view setNeedsLayout];
-                        [_playerController.view layoutIfNeeded];
+                        [keyWindow setNeedsLayout];
+                        [keyWindow layoutIfNeeded];
                     } else {
                         _playerController.view.frame = _rectBefore;
                     }
@@ -147,6 +126,7 @@
                     _playerController.view.backgroundColor = [UIColor clearColor];
                     _playerController.scrollView.backgroundColor = _playerController.view.backgroundColor;
                 } completion:^(BOOL finished) {
+                    
                     [_superviewBefore addSubview:_playerController.view];
                     
                     if (![_playerController.view translatesAutoresizingMaskIntoConstraints]) {
@@ -239,8 +219,8 @@
             
             [UIView animateWithDuration:duration animations:^{
                 if (![_playerController.view translatesAutoresizingMaskIntoConstraints]) {
-                    [_playerController.view setNeedsLayout];
-                    [_playerController.view layoutIfNeeded];
+                    [keyWindow setNeedsLayout];
+                    [keyWindow layoutIfNeeded];
                 } else {
                     _playerController.view.frame = _rectWin;
                 }
@@ -274,7 +254,7 @@
             }];
         }];
 #endif
-    }
+    
 }
 
 #pragma mark - Orientation

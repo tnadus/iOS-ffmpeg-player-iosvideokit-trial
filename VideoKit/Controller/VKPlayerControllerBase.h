@@ -45,6 +45,9 @@ extern NSString *VKDECODER_OPT_KEY_FORCE_MJPEG;
 ///FFmpeg has many server configuration parameters and if this key and value (value must be always @"1") is set, all parameter will pass through ffmpeg without any modification. This is like playing a url with fflay, for example, ffplay rtsp://xxx.xxx.xxx.xxx -rtsp_transport tcp
 extern NSString *VKDECODER_OPT_KEY_PASS_THROUGH;
 
+///Caching mechanism using ffmpeg cache protocol, If this option is used, then It's possible to make Youtube like caching for http file streams. Corresponding value for this key must be set to @(1) or @"1" object to enable this option
+extern NSString *VKDECODER_OPT_KEY_CACHE_STREAM_ENABLE ;
+
 /* VKDecoder decode option values*/
 
 ///RTSP uses UDP transport layer - advantage fast, disadvantage packets can be lost
@@ -356,6 +359,9 @@ NSString * errorText(VKError errCode);
 
 // Shows an information view about the file currently playing
 - (void)showInfoView;
+
+// Hides the information view about the file currently playing
+- (void)hideInfoView;
 
 #pragma mark - Player UI elements
 

@@ -21,7 +21,6 @@
 #pragma mark - VKPlayerController
 
 #define BAR_BUTTON_TAG_DONE             1000
-#define BAR_BUTTON_TAG_SCALE            1001
 
 #define PANEL_BUTTON_TAG_PP_TOGGLE      2001
 #define PANEL_BUTTON_TAG_INFO           2002
@@ -214,12 +213,7 @@
     _labelStreamCurrentTime.numberOfLines = 1;
     _labelStreamCurrentTime.opaque = NO;
     _labelStreamCurrentTime.backgroundColor = [UIColor clearColor];
-    if ([[[UIDevice currentDevice] systemVersion] compare:@"7.0" options:NSNumericSearch] != NSOrderedAscending) {
-        //running on iOS 7.0 or higher
-        _labelStreamCurrentTime.textColor = [UIColor darkGrayColor];
-    } else {
-        _labelStreamCurrentTime.textColor = [UIColor whiteColor];
-    }
+    _labelStreamCurrentTime.textColor = [UIColor darkGrayColor];
     _labelStreamCurrentTime.font = [UIFont fontWithName:@"HelveticaNeue" size:13.0];
     _labelStreamCurrentTime.hidden = YES;
     [_viewCenteredOnBar addSubview:_labelStreamCurrentTime];
@@ -231,12 +225,7 @@
     _labelStreamTotalDuration.numberOfLines = 1;
     _labelStreamTotalDuration.opaque = NO;
     _labelStreamTotalDuration.backgroundColor = [UIColor clearColor];
-    if ([[[UIDevice currentDevice] systemVersion] compare:@"7.0" options:NSNumericSearch] != NSOrderedAscending) {
-        //running on iOS 7.0 or higher
-        _labelStreamTotalDuration.textColor = [UIColor darkGrayColor];
-    } else {
-        _labelStreamTotalDuration.textColor = [UIColor whiteColor];
-    }
+    _labelStreamTotalDuration.textColor = [UIColor darkGrayColor];
     _labelStreamTotalDuration.font = [UIFont fontWithName:@"HelveticaNeue" size:13.0];
     _labelStreamTotalDuration.hidden = YES;
     [_viewCenteredOnBar addSubview:_labelStreamTotalDuration];
@@ -404,12 +393,7 @@
     _labelElapsedTime.textAlignment = NSTextAlignmentLeft;
     _labelElapsedTime.backgroundColor = [UIColor clearColor];
     _labelElapsedTime.opaque = NO;
-    if ([[[UIDevice currentDevice] systemVersion] compare:@"7.0" options:NSNumericSearch] != NSOrderedAscending) {
-        //running on iOS 7.0 or higher
-        _labelElapsedTime.textColor = [UIColor darkGrayColor];
-    } else {
-        _labelElapsedTime.textColor = [UIColor colorWithRed:0.906 green:0.906 blue:0.906 alpha:1.000];
-    }
+    _labelElapsedTime.textColor = [UIColor darkGrayColor];
     _labelElapsedTime.font = [UIFont fontWithName:@"HelveticaNeue" size:16];
     [_viewControlPanel addSubview:_labelElapsedTime];
     
@@ -753,12 +737,7 @@
     
     float duration = (animated) ? 0.5 : 0.0;
     
-    UIWindow *keyWindow = [[[UIApplication sharedApplication] windows] lastObject];
-    id windowActive = keyWindow;
-    if ([[[UIDevice currentDevice] systemVersion] compare:@"8.0" options:NSNumericSearch] == NSOrderedAscending) {
-        //running on iOS 7.x
-        windowActive = [[keyWindow subviews] objectAtIndex:0];
-    }
+    UIWindow *windowActive = [[[UIApplication sharedApplication] windows] lastObject];
     
     CGRect newRectToWindow = [windowActive convertRect:self.view.frame fromView:self.view.superview];
     VKFullscreenContainer *fsContainerVc = [[[VKFullscreenContainer alloc] initWithPlayerController:self
@@ -766,20 +745,6 @@
     [self removeUIEmbedded];
     
     CGRect bounds = [[UIScreen mainScreen] bounds];
-    
-    if ([[[UIDevice currentDevice] systemVersion] compare:@"8.0" options:NSNumericSearch] == NSOrderedAscending) {
-        //running on only iOS 7.x
-        UIInterfaceOrientation orientation = (UIInterfaceOrientation)[[UIDevice currentDevice] orientation];
-        if (UIDeviceOrientationIsValidInterfaceOrientation(orientation)) {
-            if (UIInterfaceOrientationIsLandscape(orientation)) {
-                bounds =  CGRectMake(bounds.origin.x, bounds.origin.y, bounds.size.height, bounds.size.width);
-            }
-        } else {
-            if (UIInterfaceOrientationIsLandscape(topVc.interfaceOrientation)) {
-                bounds =  CGRectMake(bounds.origin.x, bounds.origin.y, bounds.size.height, bounds.size.width);
-            }
-        }
-    }
     
     __block NSLayoutConstraint *constraintTopByWin, *constraintLeftByWin, *constraintWidthByWin, *constraintHeightByWin;
     
@@ -806,8 +771,8 @@
             constraintHeightByWin = [NSLayoutConstraint constraintWithItem:self.view attribute:NSLayoutAttributeHeight relatedBy:NSLayoutRelationEqual toItem:NULL attribute:NSLayoutAttributeNotAnAttribute multiplier:1.0 constant:newRectToWindow.size.height];
             [windowActive addConstraint:constraintHeightByWin];
             
-            [self.view setNeedsLayout];
-            [self.view layoutIfNeeded];
+            [windowActive setNeedsLayout];
+            [windowActive layoutIfNeeded];
         }
         
         [UIView animateWithDuration:duration animations:^{
@@ -818,8 +783,8 @@
                 constraintLeftByWin.constant = 0.0;
                 constraintWidthByWin.constant = bounds.size.width;
                 constraintHeightByWin.constant = bounds.size.height;
-                [self.view setNeedsLayout];
-                [self.view layoutIfNeeded];
+                [windowActive setNeedsLayout];
+                [windowActive layoutIfNeeded];
             } else {
                 self.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
                 self.view.frame = bounds;
@@ -833,6 +798,18 @@
             
             _containerVc = [fsContainerVc retain];
             
+            [fsContainerVc.view addSubview:self.view];
+            
+            UIView *playerView = self.view;
+            // align _playerController.view from the left and right
+            [fsContainerVc.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-0-[playerView]-0-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(playerView)]];
+            
+            // align _playerController.view from the top and bottom
+            [fsContainerVc.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-0-[playerView]-0-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(playerView)]];
+            
+            float statusBarHeight = [UIApplication sharedApplication].statusBarFrame.size.height;
+            _toolBar.delegate = (id<UIToolbarDelegate>)fsContainerVc;
+            
             if (_controlStyle != kVKPlayerControlStyleNone) {
                 _toolBar.alpha = 0.0;
                 _viewControlPanel.alpha = 0.0;
@@ -840,23 +817,6 @@
                 [self addUIFullScreen];
                 _controlStyle = kVKPlayerControlStyleFullScreen;
             }
-            
-            float statusBarHeight = [UIApplication sharedApplication].statusBarFrame.size.height;
-            if ([[[UIDevice currentDevice] systemVersion] compare:@"8.0" options:NSNumericSearch] == NSOrderedAscending) {
-                //running on only iOS 7.x
-                UIInterfaceOrientation orientation = (UIInterfaceOrientation)[[UIDevice currentDevice] orientation];
-                if (UIDeviceOrientationIsValidInterfaceOrientation(orientation)) {
-                    if (UIInterfaceOrientationIsLandscape(orientation)) {
-                        statusBarHeight = [UIApplication sharedApplication].statusBarFrame.size.width;
-                    }
-                } else {
-                    if (UIInterfaceOrientationIsLandscape(topVc.interfaceOrientation)) {
-                        statusBarHeight = [UIApplication sharedApplication].statusBarFrame.size.width;
-                    }
-                }
-            }
-            
-            _toolBar.delegate = (id<UIToolbarDelegate>)fsContainerVc;
             
             NSArray *constraints = [self.view constraints];
             NSLayoutConstraint *constraitTop = nil;
@@ -866,20 +826,12 @@
                     break;
                 }
             }
+            
             if (_statusBarHidden) {
                 constraitTop.constant = 0.0;
             } else {
                 constraitTop.constant = (statusBarHeight != 0) ? statusBarHeight : 20.0;
             }
-            
-            [fsContainerVc.view addSubview:self.view];
-            
-            UIView *playerView = self.view;
-            // align _playerController.view from the left and right
-            [fsContainerVc.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-0-[playerView]-0-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(playerView)]];
-            
-            // align _playerController.view from the top and bottom
-            [fsContainerVc.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-0-[playerView]-0-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(playerView)]];
             
             if (_mainScreenIsMobile) {
                 [self.scrollView setDisableCenterViewNow:NO];
@@ -977,8 +929,6 @@
         } else if (_containerVc) {
             [self performSelector:@selector(setFullScreen:) withObject:NULL afterDelay:0.1];
         }
-    } else if (tag == BAR_BUTTON_TAG_SCALE) {
-        [self performSelector:@selector(zoomInOut)];
     }
 }
 
@@ -1150,19 +1100,6 @@ retry:
             _controlStyle = kVKPlayerControlStyleFullScreen;
             
             float statusBarHeight = [UIApplication sharedApplication].statusBarFrame.size.height;
-            if ([[[UIDevice currentDevice] systemVersion] compare:@"8.0" options:NSNumericSearch] == NSOrderedAscending) {
-                //running on only iOS 7.x
-                UIInterfaceOrientation orientation = (UIInterfaceOrientation)[[UIDevice currentDevice] orientation];
-                if (UIDeviceOrientationIsValidInterfaceOrientation(orientation)) {
-                    if (UIInterfaceOrientationIsLandscape(orientation)) {
-                        statusBarHeight = [UIApplication sharedApplication].statusBarFrame.size.width;
-                    }
-                } else {
-                    if (UIInterfaceOrientationIsLandscape(_containerVc.interfaceOrientation)) {
-                        statusBarHeight = [UIApplication sharedApplication].statusBarFrame.size.width;
-                    }
-                }
-            }
             
             [self removeUIEmbedded];
             [self addUIFullScreen];

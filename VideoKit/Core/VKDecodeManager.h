@@ -39,12 +39,15 @@
 
 //defines
 #ifndef FFMPEG_VERSION
-    #define FFMPEG_VERSION                          "2.x"
+    #define FFMPEG_VERSION                          "3.x"
 #endif
+
+#define VK_DISPLAY_MATRIX_ANGLE_PORTRAIT            -90
 
 typedef enum {
     VKVideoStreamColorFormatUnknown = 0,
     VKVideoStreamColorFormatYUV,
+    VKVideoStreamColorFormatYUVVT,
     VKVideoStreamColorFormatRGB
 } VKVideoStreamColorFormat;
 
@@ -306,16 +309,6 @@ extern int av_usleep(unsigned usec);
 
 #pragma mark - Audio interruption handling
 
-#pragma mark iOS 5.x
-
-///AVAudioSession beginInterruption handler
-- (void)beginInterruption;
-
-//AVAudioSession endInterruptionWithFlags handler with flags
-- (void)endInterruptionWithFlags:(NSUInteger)flags;
-
-#pragma mark iOS 6.x or higher Audio interruption handling
-
 //AVAudioSession interruption handler with notification
 - (void) interruption:(NSNotification*)notification;
 
@@ -355,7 +348,8 @@ extern int av_usleep(unsigned usec);
 
 ///Information that holds current audio and video stream and codecs
 @property (nonatomic, readonly) NSMutableDictionary *streamInfo;
-        
+
+///Helper clock that helps Audio and Video in sync
 @property (nonatomic, readonly) VKClock *externalClock;
 
 /**
@@ -460,11 +454,11 @@ extern int av_usleep(unsigned usec);
 @property (nonatomic, assign) BOOL disableDropVideoPackets;
 
 #ifdef VK_RECORDING_CAPABILITY
-///Indicate that recording is in progress or not
+///Indicates that recording is in progress or not
 @property (nonatomic, readonly) BOOL recordingNow;
 #endif
 
-///Indicate the ffmpeg libraries version used in VideoKit
+///Indicates the ffmpeg libraries version used in VideoKit
 @property (nonatomic, readonly) NSString *ffmpegVersion;
 
 ///Use CPU in color format conversion and image scaling, default is NO (GPU is used)
@@ -474,10 +468,25 @@ extern int av_usleep(unsigned usec);
 * Make audio & video packets in sync at the beginning of playing
 *
 * Some streaming servers start sending A/V packets with big time gaps that causes slowndown on displaying frames for a few seconds.
-* Enabling this property fixes this issue, default value is NO.
+* This property fixes this issue If above situation happens, default value is YES.
 *
 */
 @property (nonatomic, assign) BOOL initialAVSync;
+        
+///Use Hardware accelerated Audio decoders (aac, ac3) If stream has one of them, default value is YES
+@property (nonatomic, assign) BOOL useHWAcceleratedAudioDecoders;
+       
+/**
+* Use Hardware accelerated Video decoders (h264 codec only) If stream has one of them, default value is YES
+*
+* Video Hardware acceleration is available for only iPhone devices.
+* (HW acceleration is not available for iPhone simulators, AppleTV simulators and Apple TV device)
+*
+*/
+@property (nonatomic, assign) BOOL useHWAcceleratedVideoDecoders;
+
+///Indicates the angle (in degrees) by which the transformation rotates the frame counterclockwise. The angle will be in range [-180.0, 180.0] (mostly used for portrait video)
+@property (nonatomic, readonly) double videoFramesAngle;
 
 @end
 

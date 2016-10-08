@@ -26,9 +26,9 @@ SKIP_COMPILE=0
 ENABLE_BITCODE=1
 
 #ffmpeg version & IOS SDK version
-VERSION="2.8.1"
+VERSION="3.1.3"
 SDKVERSION=`xcrun -sdk iphoneos --show-sdk-version`
-DEPLOYMENT_TARGET="7.0"
+DEPLOYMENT_TARGET="8.0"
 
 echo "\n"
 echo "$(tput smul)$(tput bold)Build configuration for iOS $(tput sgr 0)\n"
@@ -111,6 +111,42 @@ then
         exit 1
     	else
         	echo "patch for mux is done successfully"
+    	fi
+	fi
+	
+	cd "${CURRENTPATH}"
+	
+	if [ ! -e videotoolbox.patch ]; then
+    	echo "Patch for videotoolbox not found"
+    exit 1
+	else
+    	cp videotoolbox.patch "${CURRENTPATH}/src/ffmpeg-${VERSION}/libavcodec"
+    	cd "${CURRENTPATH}/src/ffmpeg-${VERSION}/libavcodec"
+    	echo "patch for videotoolbox found"
+    	patch -p0 -i videotoolbox.patch
+    	if [ $? -gt 0 ]; then
+        	echo "patch for videotoolbox error! exiting.."
+        exit 1
+    	else
+        	echo "patch for videotoolbox is done successfully"
+    	fi
+	fi
+	
+	cd "${CURRENTPATH}"
+	
+	if [ ! -e file_open.patch ]; then
+    	echo "Patch for file_open not found"
+    exit 1
+	else
+    	cp file_open.patch "${CURRENTPATH}/src/ffmpeg-${VERSION}/libavutil"
+    	cd "${CURRENTPATH}/src/ffmpeg-${VERSION}/libavutil"
+    	echo "patch for file_open found"
+    	patch -p0 -i file_open.patch
+    	if [ $? -gt 0 ]; then
+        	echo "patch for file_open error! exiting.."
+        exit 1
+    	else
+        	echo "patch for file_open is done successfully"
     	fi
 	fi
 fi
@@ -300,11 +336,11 @@ cp "ffmpeg.h" "../../include/ffmpeg.h"
 mkdir -p "../../include/compat"
 cp "compat/va_copy.h" "../../include/compat/va_copy.h"
 
-cp "libavcodec/get_bits.h" "../../include/libavcodec/get_bits.h"
-cp "libavcodec/mathops.h" "../../include/libavcodec/mathops.h"
-
-mkdir -p "../../include/libavcodec/arm"
-cp "libavcodec/arm/mathops.h" "../../include/libavcodec/arm/mathops.h"
+# enable below headers to debug videotoolbox.c ffmpeg file
+#cp "libavcodec/get_bits.h" "../../include/libavcodec/get_bits.h"
+#cp "libavcodec/mathops.h" "../../include/libavcodec/mathops.h"
+#mkdir -p "../../include/libavcodec/arm"
+#cp "libavcodec/arm/mathops.h" "../../include/libavcodec/arm/mathops.h"
 
 mkdir -p "../../include/libavdevice"
 cp "libavdevice/avdevice.h" "../../include/libavdevice/avdevice.h"
@@ -334,6 +370,7 @@ cp "libpostproc/postprocess.h" "../../include/libpostproc/postprocess.h"
 cp "libpostproc/version.h" "../../include/libpostproc/version.h"
 
 cp "libavutil/libm.h" "../../include/libavutil/libm.h"
+cp "libavutil/thread.h" "../../include/libavutil/thread.h"
 
 echo "copying is done"
 

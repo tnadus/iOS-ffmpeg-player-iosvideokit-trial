@@ -25,12 +25,9 @@
         self.title = @"Fullscreen Sample";
         self.tabBarItem.title = @"Fullscreen";
         self.tabBarItem.image = [UIImage imageNamed:@"vk-tabbar-icons-fullscreen.png"];
-        if ([[[UIDevice currentDevice] systemVersion] compare:@"7.0" options:NSNumericSearch] != NSOrderedAscending) {
-            //running on iOS 7.0 or higher
-            [self.tabBarItem setTitleTextAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
-                                                     [UIColor colorWithRed:0.0 green:122.0/255.0 blue:1.0 alpha:1.0], NSForegroundColorAttributeName,
-                                                     nil] forState:UIControlStateNormal];
-        }
+        [self.tabBarItem setTitleTextAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
+                                                 [UIColor colorWithRed:0.0 green:122.0/255.0 blue:1.0 alpha:1.0], NSForegroundColorAttributeName,
+                                                 nil] forState:UIControlStateNormal];
     }
     return self;
 }
@@ -41,11 +38,8 @@
 {
     [super viewDidLoad];
     // Do any additional setup after loading the view from its nib.
-    if ([[[UIDevice currentDevice] systemVersion] compare:@"7.0" options:NSNumericSearch] != NSOrderedAscending) {
-        //running on iOS 7.0 or higher
-        self.edgesForExtendedLayout = UIRectEdgeNone;
-        self.navigationItem.rightBarButtonItem.tintColor = [UIColor colorWithRed:0.0 green:122.0/255.0 blue:1.0 alpha:1.0];
-    }
+    self.edgesForExtendedLayout = UIRectEdgeNone;
+    self.navigationItem.rightBarButtonItem.tintColor = [UIColor colorWithRed:0.0 green:122.0/255.0 blue:1.0 alpha:1.0];
     self.navigationController.navigationBar.tintColor = [UIColor lightGrayColor];
     
     UIRefreshControl *refreshControl = [[[UIRefreshControl alloc] init] autorelease];

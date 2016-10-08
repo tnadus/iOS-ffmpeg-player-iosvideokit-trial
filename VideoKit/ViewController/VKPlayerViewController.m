@@ -67,7 +67,7 @@
 #else
     bounds = [[UIScreen mainScreen] applicationFrame];
     
-    if (UIInterfaceOrientationIsLandscape([[UIDevice currentDevice] orientation])) {
+    if (UIInterfaceOrientationIsLandscape([[UIApplication sharedApplication] statusBarOrientation])) {
         bounds =  CGRectMake(bounds.origin.x, bounds.origin.y, bounds.size.height, bounds.size.width);
     }
 #endif
@@ -80,10 +80,7 @@
 {
     [super viewDidLoad];
     
-    if ([[[UIDevice currentDevice] systemVersion] compare:@"7.0" options:NSNumericSearch] != NSOrderedAscending) {
-        //running on iOS 7.0 or higher
-        self.edgesForExtendedLayout = UIRectEdgeNone;
-    }
+    self.edgesForExtendedLayout = UIRectEdgeNone;
     _playerController.username = _username;
     _playerController.secret = _secret;
     UIView *playerView = _playerController.view;
@@ -97,6 +94,9 @@
     
     // align _playerController.view from the top and bottom
     [self.view addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|-0-[playerView]-0-|" options:0 metrics:nil views:NSDictionaryOfVariableBindings(playerView)]];
+    
+    [self.view setNeedsLayout];
+    [self.view layoutIfNeeded];
 
     [_playerController play];
 }

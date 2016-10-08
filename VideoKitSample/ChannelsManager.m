@@ -81,9 +81,6 @@
 
     //adding remote streams
 
-    Channel *chanMPL = [Channel channelWithName:@"MPL TV" addr:@"rtsp://mpl.dyndns.tv/MPL" description:@"rtsp sample stream" localFile:NO options:[NSDictionary dictionaryWithObject:VKDECODER_OPT_VALUE_RTSP_TRANSPORT_TCP forKey:VKDECODER_OPT_KEY_RTSP_TRANSPORT]];
-    [_streamList addObject:chanMPL];
-
     Channel *chanBigBuckBunny = [Channel channelWithName:@"Big Buck Bunny" addr:@"rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mov" description:@"rtsp sample stream" localFile:NO options:[NSDictionary dictionaryWithObject:VKDECODER_OPT_VALUE_RTSP_TRANSPORT_TCP forKey:VKDECODER_OPT_KEY_RTSP_TRANSPORT]];
     [_streamList addObject:chanBigBuckBunny];
 
@@ -96,14 +93,8 @@
     Channel *chanKids = [Channel channelWithName:@"Kids Cena Wiffle" addr:@"rtmp://flvideo.wwe.com/wwevideo/flv/kids/2008/october8-14/kids_cena_wiffle_large.flv" description:@"rtmp sample stream" localFile:NO options:NULL];
     [_streamList addObject:chanKids];
 
-    Channel *chanBeotel = [Channel channelWithName:@"Beotel Studio B" addr:@"mms://beotelmedia.beotel.net/studiob" description:@"mms sample stream" localFile:NO options:NULL];
-    [_streamList addObject:chanBeotel];
-
     Channel *chanKjollefjordWebcam = [Channel channelWithName:@"Kjøllefjord webcam" addr:@"http://81.93.105.4/axis-cgi/mjpg/video.cgi?camera=1&resolution=704x576" description:@"mjpeg sample stream" localFile:NO options:[NSDictionary dictionaryWithObject:@"1" forKey:VKDECODER_OPT_KEY_FORCE_MJPEG]];
     [_streamList addObject:chanKjollefjordWebcam];
-
-    Channel *chanRaiYoyo = [Channel channelWithName:@"Rai Yoyo" addr:@"mmsh://212.162.68.162/rai_yoyo" description:@"mmsh sample stream" localFile:NO options:NULL];
-    [_streamList addObject:chanRaiYoyo];
 
     Channel *chanJavan = [Channel channelWithName:@"Radio Javan" addr:@"http://stream.radiojavan.com/radiojavan" description:@"http sample audio stream" localFile:NO options:NULL];
     [_streamList addObject:chanJavan];
@@ -111,7 +102,7 @@
     Channel *chanPower = [Channel channelWithName:@"Power FM" addr:@"http://icast.powergroup.com.tr:80/PowerGymTonic/mpeg/128/home" description:@"http sample mp3 audio stream" localFile:NO options:NULL];
     [_streamList addObject:chanPower];
     
-    Channel *chanKitkat = [Channel channelWithName:@"Kitkat on dropbox" addr:@"https://dl.dropboxusercontent.com/u/6355786/kitkat.flv" description:@"https sample stream" localFile:NO options:NULL];
+    Channel *chanKitkat = [Channel channelWithName:@"Kitkat on dropbox" addr:@"https://dl.dropboxusercontent.com/u/6355786/kitkat.flv" description:@"https sample stream" localFile:NO options:@{VKDECODER_OPT_KEY_CACHE_STREAM_ENABLE: @(1)}];
     [_streamList addObject:chanKitkat];
     
     Channel *chanFake = [Channel channelWithName:@"Fake stream" addr:@"http://stream.fake.com" description:@"fake stream to test failure" localFile:NO options:NULL];

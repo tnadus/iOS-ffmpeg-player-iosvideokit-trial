@@ -37,19 +37,22 @@
 		63092F261836558800BA2DB9 /* libswscale.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 63092EFC1836558800BA2DB9 /* libswscale.a */; };
 		63092F371836558800BA2DB9 /* VKImages.bundle in Resources */ = {isa = PBXBuildFile; fileRef = 63092F201836558800BA2DB9 /* VKImages.bundle */; };
 		63092F421836722B00BA2DB9 /* cmdutils.c in Sources */ = {isa = PBXBuildFile; fileRef = 63092EA91836558800BA2DB9 /* cmdutils.c */; };
-		631E8DEF1D17272C005A6246 /* libVideoKit.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 631E8DEE1D17272C005A6246 /* libVideoKit.a */; };
-		631E8DF01D17272C005A6246 /* libVideoKit.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 631E8DEE1D17272C005A6246 /* libVideoKit.a */; };
 		632216CF1BE62F4C0066954A /* VKPlayerControllerBase.m in Sources */ = {isa = PBXBuildFile; fileRef = 632216CE1BE62F4C0066954A /* VKPlayerControllerBase.m */; };
 		632216D01BE62F4C0066954A /* VKPlayerControllerBase.m in Sources */ = {isa = PBXBuildFile; fileRef = 632216CE1BE62F4C0066954A /* VKPlayerControllerBase.m */; };
 		633268A719E5D2F20096BF7D /* VKPlayerViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 63092F1A1836558800BA2DB9 /* VKPlayerViewController.m */; };
 		633268A819E5D2F30096BF7D /* VKPlayerViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 63092F1A1836558800BA2DB9 /* VKPlayerViewController.m */; };
-		633268A919E5D2F50096BF7D /* VKPlayerController.m in Sources */ = {isa = PBXBuildFile; fileRef = 63092F021836558800BA2DB9 /* VKPlayerController.m */; };
 		633268AA19E5D2F50096BF7D /* VKPlayerController.m in Sources */ = {isa = PBXBuildFile; fileRef = 63092F021836558800BA2DB9 /* VKPlayerController.m */; };
+		633D96BC1D65F1CF003BC57D /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 633D96BB1D65F1CF003BC57D /* CoreMedia.framework */; };
+		633D96BE1D65F1D9003BC57D /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 633D96BD1D65F1D9003BC57D /* CoreVideo.framework */; };
+		633D96C01D65F1E1003BC57D /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 633D96BF1D65F1E1003BC57D /* VideoToolbox.framework */; };
+		636D06981D9E9B31000155BA /* libVideoKit.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 636D06971D9E9B31000155BA /* libVideoKit.a */; };
+		636D06991D9E9B31000155BA /* libVideoKit.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 636D06971D9E9B31000155BA /* libVideoKit.a */; };
 		638A2DAC18F93D5B003A2193 /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 638A2DAA18F93D5B003A2193 /* libcrypto.a */; };
 		638A2DAE18F93D5B003A2193 /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 638A2DAB18F93D5B003A2193 /* libssl.a */; };
 		6392E1581CC9081D00CD2A7D /* FullScreenSampleViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 6392E1571CC9081D00CD2A7D /* FullScreenSampleViewController.xib */; };
 		63AEC9ED1BD116B100308EE9 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 63AEC9EC1BD116B100308EE9 /* libz.tbd */; };
 		63AEC9EF1BD116D400308EE9 /* libiconv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 63AEC9EE1BD116D400308EE9 /* libiconv.tbd */; };
+		63BBDCF51D7B03CB00377369 /* GLKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 63BBDCF41D7B03CB00377369 /* GLKit.framework */; };
 		63D4C0CA1971240D00B453C2 /* license-form.plist in Resources */ = {isa = PBXBuildFile; fileRef = 63D4C0C91971240D00B453C2 /* license-form.plist */; };
 		63EEBC2D182473780034ED59 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 63EEBC2C182473780034ED59 /* AVFoundation.framework */; };
 		63EEBC35182542A80034ED59 /* EAIntroPage.m in Sources */ = {isa = PBXBuildFile; fileRef = 63EEBC32182542A80034ED59 /* EAIntroPage.m */; };
@@ -57,6 +60,7 @@
 		63F00A2618350B200089B34A /* despicable.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 63F00A2318350B200089B34A /* despicable.mp4 */; };
 		63F00A2718350B200089B34A /* iphone5c.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 63F00A2418350B200089B34A /* iphone5c.mp4 */; };
 		63F00A2818350B200089B34A /* kitkat.flv in Resources */ = {isa = PBXBuildFile; fileRef = 63F00A2518350B200089B34A /* kitkat.flv */; };
+		63F837CC1D9EA0B300ACB7AD /* VKPlayerController.m in Sources */ = {isa = PBXBuildFile; fileRef = 63092F021836558800BA2DB9 /* VKPlayerController.m */; };
 		63FFE6A91CBFE3C300F16557 /* VKFullscreenContainer.m in Sources */ = {isa = PBXBuildFile; fileRef = 63FFE6A81CBFE3C300F16557 /* VKFullscreenContainer.m */; };
 		63FFE6AA1CBFE3C300F16557 /* VKFullscreenContainer.m in Sources */ = {isa = PBXBuildFile; fileRef = 63FFE6A81CBFE3C300F16557 /* VKFullscreenContainer.m */; };
 		63FFE6B11CC0CB0500F16557 /* VKScrollViewContainer.m in Sources */ = {isa = PBXBuildFile; fileRef = 63FFE6B01CC0CB0500F16557 /* VKScrollViewContainer.m */; };
@@ -79,7 +83,6 @@
 		1EA3BC8D1BFD075400ED7C1A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
 		6223CEE418098112000649BF /* Channel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Channel.h; sourceTree = "<group>"; };
 		6223CEE518098112000649BF /* Channel.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Channel.m; sourceTree = "<group>"; };
-		623B9BBB18081E9C008A3702 /* VideoKitSampleTRIAL-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "VideoKitSampleTRIAL-Info.plist"; sourceTree = "<group>"; };
 		6254A032181BAF2300464BA3 /* UINavigationController+Additions.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UINavigationController+Additions.m"; sourceTree = "<group>"; };
 		6254A033181BAF2300464BA3 /* UINavigationController+Additions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "UINavigationController+Additions.h"; sourceTree = "<group>"; };
 		6254A036181BB00C00464BA3 /* ChannelsManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ChannelsManager.h; sourceTree = "<group>"; };
@@ -128,10 +131,18 @@
 		63092F1C1836558800BA2DB9 /* VKGLES2View.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VKGLES2View.h; sourceTree = "<group>"; };
 		63092F1E1836558800BA2DB9 /* VKStreamInfoView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VKStreamInfoView.h; sourceTree = "<group>"; };
 		63092F201836558800BA2DB9 /* VKImages.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; path = VKImages.bundle; sourceTree = "<group>"; };
-		631E8DEE1D17272C005A6246 /* libVideoKit.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libVideoKit.a; path = videokit/Core/libVideoKit.a; sourceTree = SOURCE_ROOT; };
 		632216CD1BE62F4C0066954A /* VKPlayerControllerBase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = VKPlayerControllerBase.h; path = videokit/Controller/VKPlayerControllerBase.h; sourceTree = SOURCE_ROOT; };
 		632216CE1BE62F4C0066954A /* VKPlayerControllerBase.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = VKPlayerControllerBase.m; path = videokit/Controller/VKPlayerControllerBase.m; sourceTree = SOURCE_ROOT; };
+		633D96BB1D65F1CF003BC57D /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
+		633D96BD1D65F1D9003BC57D /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
+		633D96BF1D65F1E1003BC57D /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = System/Library/Frameworks/VideoToolbox.framework; sourceTree = SDKROOT; };
+		633D96C11D66FDAB003BC57D /* VKVideoFrameYUVVT.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = VKVideoFrameYUVVT.h; path = videokit/Core/VKVideoFrameYUVVT.h; sourceTree = SOURCE_ROOT; };
+		633D96C61D672BF7003BC57D /* VKGLES2ViewRGB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = VKGLES2ViewRGB.h; path = videokit/Views/VKGLES2ViewRGB.h; sourceTree = SOURCE_ROOT; };
+		633D96CA1D673B7B003BC57D /* VKGLES2ViewYUV.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = VKGLES2ViewYUV.h; path = videokit/Views/VKGLES2ViewYUV.h; sourceTree = SOURCE_ROOT; };
+		633D96CE1D673D34003BC57D /* VKGLES2ViewYUVVT.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = VKGLES2ViewYUVVT.h; path = videokit/Views/VKGLES2ViewYUVVT.h; sourceTree = SOURCE_ROOT; };
 		6350D3221BABE8B300A122D2 /* VKClockManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VKClockManager.h; sourceTree = "<group>"; };
+		636D06951D9E9716000155BA /* VideoKitSampleTRIAL-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "VideoKitSampleTRIAL-Info.plist"; sourceTree = "<group>"; };
+		636D06971D9E9B31000155BA /* libVideoKit.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libVideoKit.a; sourceTree = "<group>"; };
 		637EADD8189CFB0C006D235D /* VKAVDecodeManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VKAVDecodeManager.h; sourceTree = "<group>"; };
 		638A2DAA18F93D5B003A2193 /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = "VideoKit/3rd-party/openSSL/lib/libcrypto.a"; sourceTree = SOURCE_ROOT; };
 		638A2DAB18F93D5B003A2193 /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = "VideoKit/3rd-party/openSSL/lib/libssl.a"; sourceTree = SOURCE_ROOT; };
@@ -140,6 +151,7 @@
 		63AEC9EC1BD116B100308EE9 /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
 		63AEC9EE1BD116D400308EE9 /* libiconv.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libiconv.tbd; path = usr/lib/libiconv.tbd; sourceTree = SDKROOT; };
 		63B7D49A19D5559300053DDA /* VKRecorder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VKRecorder.h; sourceTree = "<group>"; };
+		63BBDCF41D7B03CB00377369 /* GLKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLKit.framework; path = System/Library/Frameworks/GLKit.framework; sourceTree = SDKROOT; };
 		63D4C0C5196FE2B500B453C2 /* VKManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VKManager.h; sourceTree = "<group>"; };
 		63D4C0C91971240D00B453C2 /* license-form.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "license-form.plist"; sourceTree = "<group>"; };
 		63ED00B01CBFC6E100E9411C /* VKColorPlane.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = VKColorPlane.h; path = videokit/Core/VKColorPlane.h; sourceTree = SOURCE_ROOT; };
@@ -165,7 +177,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				631E8DF01D17272C005A6246 /* libVideoKit.a in Frameworks */,
+				636D06991D9E9B31000155BA /* libVideoKit.a in Frameworks */,
 				627D6CBD16BDE0EE00E9AB02 /* Foundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -174,9 +186,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				63BBDCF51D7B03CB00377369 /* GLKit.framework in Frameworks */,
+				633D96C01D65F1E1003BC57D /* VideoToolbox.framework in Frameworks */,
+				633D96BE1D65F1D9003BC57D /* CoreVideo.framework in Frameworks */,
+				633D96BC1D65F1CF003BC57D /* CoreMedia.framework in Frameworks */,
 				63AEC9EF1BD116D400308EE9 /* libiconv.tbd in Frameworks */,
 				63AEC9ED1BD116B100308EE9 /* libz.tbd in Frameworks */,
-				631E8DEF1D17272C005A6246 /* libVideoKit.a in Frameworks */,
 				63092F241836558800BA2DB9 /* libavutil.a in Frameworks */,
 				63092F221836558800BA2DB9 /* libavcodec.a in Frameworks */,
 				63092F251836558800BA2DB9 /* libswresample.a in Frameworks */,
@@ -185,6 +200,7 @@
 				638A2DAC18F93D5B003A2193 /* libcrypto.a in Frameworks */,
 				63EEBC2D182473780034ED59 /* AVFoundation.framework in Frameworks */,
 				6262F9A116C669E5002FA664 /* SystemConfiguration.framework in Frameworks */,
+				636D06981D9E9B31000155BA /* libVideoKit.a in Frameworks */,
 				626C548216B2899B00010A8E /* MediaPlayer.framework in Frameworks */,
 				62BFA8D71691C70F0086FC59 /* AudioToolbox.framework in Frameworks */,
 				62BFA8D91691C71B0086FC59 /* OpenGLES.framework in Frameworks */,
@@ -275,8 +291,12 @@
 		62E0CA0716566C0C00E2B4B0 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				63AEC9EE1BD116D400308EE9 /* libiconv.tbd */,
+				63BBDCF41D7B03CB00377369 /* GLKit.framework */,
 				63AEC9EC1BD116B100308EE9 /* libz.tbd */,
+				63AEC9EE1BD116D400308EE9 /* libiconv.tbd */,
+				633D96BF1D65F1E1003BC57D /* VideoToolbox.framework */,
+				633D96BD1D65F1D9003BC57D /* CoreVideo.framework */,
+				633D96BB1D65F1CF003BC57D /* CoreMedia.framework */,
 				63EEBC2C182473780034ED59 /* AVFoundation.framework */,
 				6262F9A016C669E5002FA664 /* SystemConfiguration.framework */,
 				626C548116B2899B00010A8E /* MediaPlayer.framework */,
@@ -302,10 +322,10 @@
 		62E0CA0F16566C0C00E2B4B0 /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
+				636D06951D9E9716000155BA /* VideoKitSampleTRIAL-Info.plist */,
 				1EA3BC8D1BFD075400ED7C1A /* Images.xcassets */,
 				63F00A2218350B200089B34A /* sample_videos */,
 				6223CEE918098258000649BF /* Xibs */,
-				623B9BBB18081E9C008A3702 /* VideoKitSampleTRIAL-Info.plist */,
 				62E0CA1116566C0C00E2B4B0 /* InfoPlist.strings */,
 				62E0CA1416566C0C00E2B4B0 /* main.m */,
 			);
@@ -396,7 +416,7 @@
 				637EADD8189CFB0C006D235D /* VKAVDecodeManager.h */,
 				63B7D49A19D5559300053DDA /* VKRecorder.h */,
 				63092F0A1836558800BA2DB9 /* VKPacket.h */,
-				631E8DEE1D17272C005A6246 /* libVideoKit.a */,
+				636D06971D9E9B31000155BA /* libVideoKit.a */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -414,6 +434,9 @@
 			isa = PBXGroup;
 			children = (
 				63092F1C1836558800BA2DB9 /* VKGLES2View.h */,
+				633D96CA1D673B7B003BC57D /* VKGLES2ViewYUV.h */,
+				633D96CE1D673D34003BC57D /* VKGLES2ViewYUVVT.h */,
+				633D96C61D672BF7003BC57D /* VKGLES2ViewRGB.h */,
 				63092F1E1836558800BA2DB9 /* VKStreamInfoView.h */,
 			);
 			path = Views;
@@ -445,6 +468,7 @@
 				63092F0E1836558800BA2DB9 /* VKVideoFrame.h */,
 				63ED00B41CBFC86000E9411C /* VKVideoFrameRGB.h */,
 				63ED00B91CBFC89700E9411C /* VKVideoFrameYUV.h */,
+				633D96C11D66FDAB003BC57D /* VKVideoFrameYUVVT.h */,
 			);
 			name = VKVideoFrame;
 			sourceTree = "<group>";
@@ -526,8 +550,13 @@
 			isa = PBXProject;
 			attributes = {
 				CLASSPREFIX = "";
-				LastUpgradeCheck = 0710;
+				LastUpgradeCheck = 0800;
 				ORGANIZATIONNAME = iosvideokit;
+				TargetAttributes = {
+					62E0CA0316566C0C00E2B4B0 = {
+						DevelopmentTeam = 2G876RW9RP;
+					};
+				};
 			};
 			buildConfigurationList = 62E0C9FE16566C0C00E2B4B0 /* Build configuration list for PBXProject "VideoKitSampleTRIAL" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -587,7 +616,7 @@
 			files = (
 				632216CF1BE62F4C0066954A /* VKPlayerControllerBase.m in Sources */,
 				62E0CA1516566C0C00E2B4B0 /* main.m in Sources */,
-				633268A919E5D2F50096BF7D /* VKPlayerController.m in Sources */,
+				63F837CC1D9EA0B300ACB7AD /* VKPlayerController.m in Sources */,
 				62E0CA1916566C0C00E2B4B0 /* AppDelegate.m in Sources */,
 				62E0CA3116566DFF00E2B4B0 /* FullScreenSampleViewController.m in Sources */,
 				63092F211836558800BA2DB9 /* cmdutils.c in Sources */,
@@ -630,12 +659,11 @@
 				EXECUTABLE_PREFIX = "";
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				HEADER_SEARCH_PATHS = "./VideoKit/3rd-party/ffmpeg/include/";
-				IPHONEOS_DEPLOYMENT_TARGET = 5.1.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LIBRARY_SEARCH_PATHS = (
 					"./VideoKit/3rd-party/ffmpeg/lib/",
 					"./VideoKit/3rd-party/openSSL/lib/",
 					"$(PROJECT_DIR)/VideoKit/Core",
-					"$(PROJECT_DIR)/videokit/Core",
 				);
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_LDFLAGS = "-ObjC";
@@ -655,12 +683,11 @@
 				EXECUTABLE_PREFIX = "";
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				HEADER_SEARCH_PATHS = "./VideoKit/3rd-party/ffmpeg/include/";
-				IPHONEOS_DEPLOYMENT_TARGET = 5.1.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LIBRARY_SEARCH_PATHS = (
 					"./VideoKit/3rd-party/ffmpeg/lib/",
 					"./VideoKit/3rd-party/openSSL/lib/",
 					"$(PROJECT_DIR)/VideoKit/Core",
-					"$(PROJECT_DIR)/videokit/Core",
 				);
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = "-DNS_BLOCK_ASSERTIONS=1";
@@ -677,23 +704,35 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"$(inherited)",
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -707,15 +746,27 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				OTHER_CFLAGS = "-DNS_BLOCK_ASSERTIONS=1";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -731,16 +782,16 @@
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				DEVELOPMENT_TEAM = 2G876RW9RP;
 				ENABLE_BITCODE = NO;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				HEADER_SEARCH_PATHS = "./VideoKit/3rd-party/ffmpeg/include/";
-				INFOPLIST_FILE = "./VideoKitSample/VideoKitSampleTRIAL-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
+				INFOPLIST_FILE = "$(SRCROOT)/VideoKitSample/VideoKitSampleTRIAL-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LIBRARY_SEARCH_PATHS = (
 					"./VideoKit/3rd-party/ffmpeg/lib/",
 					"./VideoKit/3rd-party/openSSL/lib/",
 					"$(PROJECT_DIR)/VideoKit/Core",
-					"$(PROJECT_DIR)/videokit/Core",
 				);
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = "-DDEBUG";
@@ -761,16 +812,16 @@
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				DEVELOPMENT_TEAM = 2G876RW9RP;
 				ENABLE_BITCODE = NO;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				HEADER_SEARCH_PATHS = "./VideoKit/3rd-party/ffmpeg/include/";
-				INFOPLIST_FILE = "./VideoKitSample/VideoKitSampleTRIAL-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
+				INFOPLIST_FILE = "$(SRCROOT)/VideoKitSample/VideoKitSampleTRIAL-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LIBRARY_SEARCH_PATHS = (
 					"./VideoKit/3rd-party/ffmpeg/lib/",
 					"./VideoKit/3rd-party/openSSL/lib/",
 					"$(PROJECT_DIR)/VideoKit/Core",
-					"$(PROJECT_DIR)/videokit/Core",
 				);
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = "-DNS_BLOCK_ASSERTIONS=1";

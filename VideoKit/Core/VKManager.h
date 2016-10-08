@@ -28,7 +28,7 @@
 
 #define TRIAL                            1
 
-#define VK_CLIENT_VERSION                @"2.5"
+#define VK_CLIENT_VERSION                @"2.6"
 
 ///Video Stream Error enumerations
 typedef enum {
@@ -46,7 +46,9 @@ typedef enum {
     kVKErrorAudioCodecNotOpened,
     kVKErrorUnsupportedAudioFormat,
     kVKErrorAudioStreamAlreadyOpened,
+    kVKErrorAudioCodecOptNotFound,
     kVKErrorVideoCodecNotOpened,
+    kVKErrorVideoCodecOptNotFound,
     kVKErrorAudioAllocateMemory,
     kVKErrorVideoAllocateMemory,
     kVKErrorStreamReadError,

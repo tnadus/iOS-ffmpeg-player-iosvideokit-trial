@@ -22,7 +22,10 @@
 #import "VKPlayerControllerBase.h"
 #import <QuartzCore/QuartzCore.h>
 
-#import "VKGLES2View.h"
+#import "VKGLES2ViewRGB.h"
+#import "VKGLES2ViewYUV.h"
+#import "VKGLES2ViewYUVVT.h"
+
 #import "VKStreamInfoView.h"
 
 #import <MediaPlayer/MediaPlayer.h>
@@ -363,6 +366,7 @@ NSString *kVKPlayerDidExitFullscreenNotification = @"VKPlayerDidExitFullscreenNo
             //extra parameters
             _decodeManager.avPacketCountLogFrequency = 0.01;
             [_decodeManager setLogLevel:kVKLogLevelStateChanges];
+            [_decodeManager setInitialAVSync:YES];
             
             VKError error = [_decodeManager connectWithStreamURLString:_contentURLString options:_decodeOptions];
             
@@ -375,7 +379,14 @@ NSString *kVKPlayerDidExitFullscreenNotification = @"VKPlayerDidExitFullscreenNo
                     [self.view insertSubview:_scrollView atIndex:0];
 
                     //create glview to render video pictures
-                    _renderView = [[VKGLES2View alloc] init];
+                    if ([_decodeManager videoStreamColorFormat] == VKVideoStreamColorFormatRGB) {
+                        _renderView = [[VKGLES2ViewRGB alloc] init];
+                    } else if([_decodeManager videoStreamColorFormat] == VKVideoStreamColorFormatYUVVT) {
+                        _renderView = [[VKGLES2ViewYUVVT alloc] init];
+                    } else {
+                        _renderView = [[VKGLES2ViewYUV alloc] init];
+                    }
+                    
                     _renderView.backgroundColor = [UIColor blackColor];
                     if ([_renderView initGLWithDecodeManager:_decodeManager bounds:_scrollView.bounds] == kVKErrorNone) {
                     
@@ -640,25 +651,7 @@ NSString *kVKPlayerDidExitFullscreenNotification = @"VKPlayerDidExitFullscreenNo
 
 #pragma mark - AudioSession interruption
 
-#pragma mark iOS 5.x Audio interruption handling
-
-- (void)beginInterruption {
-    if (_decodeManager) {
-        [_decodeManager beginInterruption];
-    }
-}
-
-- (void)endInterruptionWithFlags:(NSUInteger)flags {
-    // re-activate audio session after interruption
-    if (_decodeManager) {
-        [_decodeManager endInterruptionWithFlags:flags];
-    }
-}
-
-#pragma mark iOS 6.x or higher Audio interruption handling
-
-- (void) interruption:(NSNotification*)notification
-{
+- (void) interruption:(NSNotification*)notification {
     if (_decodeManager) {
         [_decodeManager interruption:notification];
     }
@@ -731,8 +724,14 @@ NSString * errorText(VKError errCode)
         case kVKErrorAudioCodecNotOpened:
             return TR(@"Audio codec can not be opened");
             
+        case kVKErrorAudioCodecOptNotFound:
+            return TR(@"Audio codec option not found");
+            
         case kVKErrorVideoCodecNotOpened:
             return TR(@"Video codec can not be opened");
+            
+        case kVKErrorVideoCodecOptNotFound:
+            return TR(@"Video codec option not found");
             
         case kVKErrorAudioAllocateMemory:
             return TR(@"Can not allocate memory for Audio");

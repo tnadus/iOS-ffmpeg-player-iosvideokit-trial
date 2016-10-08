@@ -45,7 +45,7 @@
         self.delegate = self;
         
 #if TARGET_OS_IOS
-        _rotPortrait = (UIDeviceOrientationIsPortrait([[UIApplication sharedApplication] statusBarOrientation])) ? YES : NO;
+        _rotPortrait = (UIInterfaceOrientationIsPortrait([[UIApplication sharedApplication] statusBarOrientation])) ? YES : NO;
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(onRotation:) name:UIDeviceOrientationDidChangeNotification object:nil];
 #endif
     }
@@ -62,17 +62,14 @@
 
 - (void)centerScrollViewContents {
     VKLog(kVKLogLevelUIControlExtra, @"VKScrollViewContainer->centerScrollViewContents");
+    VKLog(kVKLogLevelUIControlExtra, @"VKScrollViewContainer->scrollview.contentOffset: (%f, %f)", self.contentOffset.x, self.contentOffset.y);
     
     CGSize boundsSize = self.bounds.size;
     CGRect frameToCenter = _zoomView.frame;
     
     float zoomLevel = [self zoomScale];
     BOOL resetFrame = NO;
-    
-    if (((boundsSize.width > boundsSize.height) && (boundsSize.width > frameToCenter.size.width))) {
-        resetFrame = YES;
-    }
-    
+        
     if (zoomLevel != 1.0 && (frameToCenter.size.width == boundsSize.height)) {
         resetFrame = YES;
     }
@@ -98,6 +95,7 @@
 }
 
 - (void)resetZoomViewFrame:(CGSize)boundsSize {
+    VKLog(kVKLogLevelUIControlExtra, @"VKScrollViewContainer->resetZoomViewFrame");
     CGRect r = [(VKGLES2View *)_zoomView exactFrameRectForSize:boundsSize fillScreen:_fillScreen];
     _zoomView.frame = CGRectMake(0.0, r.origin.y, r.size.width, r.size.height);
     self.contentSize = CGSizeMake(r.size.width, r.size.height);
@@ -128,11 +126,22 @@
 }
 
 - (void)scrollViewDidZoom:(UIScrollView *)scrollView {
+    VKLog(kVKLogLevelUIControlExtra, @"VKScrollViewContainer->scrollViewDidZoom atScale:%f", self.zoomScale);
     [self centerScrollViewContents];
+}
+
+- (void)scrollViewWillBeginZooming:(UIScrollView *)scrollView withView:(nullable UIView *)view {
+    VKLog(kVKLogLevelUIControlExtra, @"VKScrollViewContainer->scrollViewWillBeginZooming atScale:%f", self.zoomScale);
+    if (_zoomView) {
+        [(VKGLES2View *)_zoomView setStopUpdateGLSize:YES];
+    }
 }
 
 - (void)scrollViewDidEndZooming:(UIScrollView *)scrollView withView:(nullable UIView *)view atScale:(CGFloat)scale {
     VKLog(kVKLogLevelUIControlExtra, @"VKScrollViewContainer->scrollview.scrollViewDidEndZooming atScale:%f", scale);
+    if (_zoomView) {
+        [(VKGLES2View *)_zoomView setStopUpdateGLSize:NO];
+    }
 }
 
 - (void)scrollViewWillBeginDragging:(UIScrollView *)scrollView {
@@ -148,9 +157,9 @@
 #pragma mark - Rotation
 
 - (void)onRotation:(NSNotification *)theNotification {
-    NSLog(@"VKScrollView->onRotation");
+    VKLog(kVKLogLevelUIControlExtra, @"VKScrollView->onRotation");
 #if TARGET_OS_IOS
-    BOOL rotCurrPortrait = (UIDeviceOrientationIsPortrait([[UIApplication sharedApplication] statusBarOrientation])) ? YES : NO;
+    BOOL rotCurrPortrait = (UIInterfaceOrientationIsPortrait([[UIApplication sharedApplication] statusBarOrientation])) ? YES : NO;
     if (_rotPortrait != rotCurrPortrait) {
         _rotPortrait = rotCurrPortrait;
         [self resetZoomViewFrame:self.bounds.size];

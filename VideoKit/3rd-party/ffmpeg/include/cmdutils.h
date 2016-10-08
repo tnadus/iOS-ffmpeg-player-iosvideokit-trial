@@ -19,8 +19,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef FFMPEG_CMDUTILS_H
-#define FFMPEG_CMDUTILS_H
+#ifndef CMDUTILS_H
+#define CMDUTILS_H
 
 #include <stdint.h>
 
@@ -60,6 +60,11 @@ void register_exit(void (*cb)(int ret));
  * Wraps exit with a program-specific cleanup routine.
  */
 void exit_program(int ret) av_noreturn;
+
+/**
+ * Initialize dynamic library loading
+ */
+void init_dynload(void);
 
 /**
  * Initialize the cmdutils option system, in particular

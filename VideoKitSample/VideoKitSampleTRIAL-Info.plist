@@ -21,7 +21,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>2.5</string>
+	<string>2.6</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
@@ -34,7 +34,7 @@
 		<true/>
 	</dict>
 	<key>SDK-Build</key>
-	<string>Monday June 20 12:23:40 EEST 2016</string>
+	<string>Monday September 30 12:23:40 EEST 2016</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>

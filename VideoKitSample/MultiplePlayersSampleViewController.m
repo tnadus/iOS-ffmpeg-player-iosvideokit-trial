@@ -31,12 +31,9 @@
         // Custom initialization
         self.tabBarItem.title = @"Multi players";
         self.tabBarItem.image = [UIImage imageNamed:@"vk-tabbar-icons-multi.png"];
-        if ([[[UIDevice currentDevice] systemVersion] compare:@"7.0" options:NSNumericSearch] != NSOrderedAscending) {
-            //running on iOS 7.0 or higher
-            [self.tabBarItem setTitleTextAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
-                                                     [UIColor colorWithRed:0.0 green:122.0/255.0 blue:1.0 alpha:1.0], NSForegroundColorAttributeName,
-                                                     nil] forState:UIControlStateNormal];
-        }
+        [self.tabBarItem setTitleTextAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
+                                                 [UIColor colorWithRed:0.0 green:122.0/255.0 blue:1.0 alpha:1.0], NSForegroundColorAttributeName,
+                                                 nil] forState:UIControlStateNormal];
     }
     return self;
 }
@@ -45,10 +42,7 @@
 {
     [super viewDidLoad];
     // Do any additional setup after loading the view from its nib.
-    if ([[[UIDevice currentDevice] systemVersion] compare:@"7.0" options:NSNumericSearch] != NSOrderedAscending) {
-        //running on iOS 7.0 or higher
-        self.edgesForExtendedLayout = UIRectEdgeNone;
-    }
+    self.edgesForExtendedLayout = UIRectEdgeNone;
     
     UIRefreshControl *refreshControl = [[[UIRefreshControl alloc] init] autorelease];
     refreshControl.tintColor = [UIColor whiteColor];
@@ -132,7 +126,7 @@
         CGRect rV = self.view.bounds;
         CGRect rS = CGRectMake(163.0, 141.0, 145.0, 121.0);
 
-        if (UIDeviceOrientationIsLandscape([self interfaceOrientation])) {
+        if (self.view.bounds.size.width > self.view.bounds.size.height) {
             float hSpace = 4.0;
             float oX = rS.origin.x + rS.size.width + hSpace;
             float w = rV.size.width - oX;
