@@ -37,7 +37,7 @@ echo "$(tput setaf 2)SDKVERSION           :  ${SDKVERSION}$(tput sgr 0)"
 echo "$(tput setaf 2)DEPLOYMENT_TARGET    :  ${DEPLOYMENT_TARGET}$(tput sgr 0)"
 echo "$(tput setaf 2)USE OPENSSL ?        :  ${USEOPENSSL}$(tput sgr 0)"
 
-SDK_NUM_MAJOR=${SDKVERSION:0:1}
+SDK_NUM_MAJOR=${SDKVERSION%.*}
 
 if [ "$SDK_NUM_MAJOR" -lt 9 ] && [ "$ENABLE_BITCODE" -eq 1 ]
 then
@@ -286,10 +286,11 @@ then
 	${EXTRA_FLAGS} \
 	--prefix=${CURRENTPATH}/bin/${PLATFORM}${SDKVERSION}-${ARCH}.sdk \
 
+	sed -i -- 's/HAVE_CLOCK_GETTIME 1/HAVE_CLOCK_GETTIME 0/g' config.h
 	echo "configure is done."
 	echo "$(tput setaf 2)compiling for ${ARCH} now ...$(tput sgr 0)"
 
-    make -j8 V=1 >> "${LOG}" 2>&1
+    make -j4 V=1 >> "${LOG}" 2>&1
 	make install >> "${LOG}" 2>&1
 	make clean >> "${LOG}" 2>&1
 fi

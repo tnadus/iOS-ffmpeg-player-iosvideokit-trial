@@ -11,6 +11,21 @@
 #import "VKAVDecodeManager.h"
 #import "VKScrollViewContainer.h"
 
+typedef struct VKPlayerCustomIO {
+    ///The customIO descriptor to hold custom IO data pointer.
+    void *customIODescriptor;
+    
+    ///The customIO total size to be used for moving pointer on custom IO descriptor
+    size_t customIOSize;
+    
+    ///The customIO last byte read index to be used for moving pointer on custom IO descriptor
+    unsigned long lastByteIndex;
+    
+    ///The data used for passing argument to read_data method callback
+    void *opaque;
+    
+} VKPlayerCustomIO ;
+
 @class VKPlayerControllerBase;
 
 /* VKPlayer Fullscreen mode changed notifications */
@@ -30,7 +45,12 @@ extern NSString *kVKPlayerDidExitFullscreenNotification;
 
 /* VKDecoder decode option keys */
 
-///Defining RTSP protocol transport layer. Values are predefined under "VKDecoder decode option values"
+/**
+ *  Defining RTSP protocol transport layer. Values are predefined under "VKDecoder decode option values"
+ *
+ *  The value corresponding to the key is passed to ffmpeg. 
+ *  Important: This key-value is effectiveless when VKDECODER_OPT_KEY_PASS_THROUGH key is set in decoder options.
+ */
 extern NSString *VKDECODER_OPT_KEY_RTSP_TRANSPORT;
 
 ///Selection of audio default stream by index. Value must be an NSNumber object. (High priority)
@@ -39,14 +59,40 @@ extern NSString *VKDECODER_OPT_KEY_AUD_STRM_DEF_IDX;
 ///Selection of audio default stream by string. Value must be an NSString object (normal priority)
 extern NSString *VKDECODER_OPT_KEY_AUD_STRM_DEF_STR;
 
-///FFmpeg can not determine some formats, so we force ffmpeg to use mjpeg format. Value must be @"1" which is an NSString object
+/**
+ *  FFmpeg can not determine some formats, so we force ffmpeg to use mjpeg format. 
+ *  Value must be @"1" which is an NSString object
+ *
+ *  The value corresponding to the key is passed to ffmpeg.
+ *  Important: This key-value is effectiveless when VKDECODER_OPT_KEY_PASS_THROUGH key is set in decoder options.
+ */
 extern NSString *VKDECODER_OPT_KEY_FORCE_MJPEG;
 
-///FFmpeg has many server configuration parameters and if this key and value (value must be always @"1") is set, all parameter will pass through ffmpeg without any modification. This is like playing a url with fflay, for example, ffplay rtsp://xxx.xxx.xxx.xxx -rtsp_transport tcp
+/**
+ *  FFmpeg has many server configuration parameters and if this key and value (value must be always @"1") 
+ *  is set, all parameter will pass through ffmpeg without any modification. This is like playing a url with
+ *  fflay, for example, ffplay rtsp://xxx.xxx.xxx.xxx -rtsp_transport tcp
+ *
+ *  The value corresponding to the key is passed to ffmpeg.
+ *  Important: When VKDECODER_OPT_KEY_PASS_THROUGH key is set in decoder options, other parameters that passes to ffmpeg are effectiveless.
+ */
 extern NSString *VKDECODER_OPT_KEY_PASS_THROUGH;
 
-///Caching mechanism using ffmpeg cache protocol, If this option is used, then It's possible to make Youtube like caching for http file streams. Corresponding value for this key must be set to @(1) or @"1" object to enable this option
-extern NSString *VKDECODER_OPT_KEY_CACHE_STREAM_ENABLE ;
+/**
+ *  Caching mechanism using ffmpeg cache protocol, If this option is used, then It's possible to make Youtube
+ *  like caching for http file streams. Corresponding value for this key must be set to @(1) or @"1" 
+ *  object to enable this option
+ *
+ *  The value corresponding to the key is passed to ffmpeg.
+ *  Important: This key-value is effectiveless when VKDECODER_OPT_KEY_PASS_THROUGH key is set in decoder options.
+ */
+extern NSString *VKDECODER_OPT_KEY_CACHE_STREAM_ENABLE;
+
+///Set corresponding value to @1 to disable using hardware audio acceleration for specific audio codecs (MP3, AAC, etc, see docs for whole list)
+extern NSString *VKDECODER_OPT_KEY_HW_ACCEL_DISABLED_AUDIO;
+
+///Set corresponding value to @1 to disable using hardware video acceleration for h264 Video codec.
+extern NSString *VKDECODER_OPT_KEY_HW_ACCEL_DISABLED_VIDEO;
 
 /* VKDecoder decode option values*/
 
@@ -99,9 +145,52 @@ extern NSString *VKDECODER_OPT_VALUE_RTSP_TRANSPORT_HTTP;
 
 @end
 
+/**
+ *  Implement this delegate if you want to provide custom I/O data to ffmpeg, it's very useful when decoding a(n) audio/video stream in memory
+ */
+@protocol VKPlayerCustomIODelegate <NSObject>
+
+@required
+/**
+ *  Required delegate method, add this method to your viewcontroller to provide A/V stream data to ffmpeg
+ *
+ *  @param player  The player object that owns the notification
+ *  @param data   Indicates the data pointer to be filled
+ *  @param size Indicates the size of the data pointer to be filled
+ */
+- (int)player:(VKPlayerControllerBase *)player ioStreamRead:(uint8_t *)data size:(int)size;
+
+@optional
+
+/**
+ *  Optional delegate method, add this method to your viewcontroller to be able to seek in your A/V stream
+ *
+ *  @param player  The player object that owns the notification
+ *  @param offset   Indicates the offset bytes of data
+ *  @param whence Indicates the size of the data pointer to be filled
+ *  Important : Even if You don't want to implement A/V stream seeking functionality, this method must be implemented with a "-1" return value
+ */
+- (int64_t)player:(VKPlayerControllerBase *)player ioStreamSeek:(uint64_t)offset whence:(int)whence;
+
+/**
+ *  Optional delegate method, this method is a helper method and it's good for including the custom opening socket/file etc. code and this method must return 0 for successful opening
+ *  @param player  The player object that owns the notification
+ */
+- (VKError)ioStreamOpenForPlayer:(VKPlayerControllerBase *)player;
+
+/**
+ *  Optional delegate method, this method is a helper method and it's good for including the custom closing socket/file etc. code
+ *  @param player  The player object that owns the notification
+ */
+- (void)ioStreamCloseForPlayer:(VKPlayerControllerBase *)player;
+
+@end
+
+
 @class VKGLES2View;
 @class VKStreamInfoView;
 @class VKPlayerControllerDelegate;
+@class VKPlayerCustomIODelegate;
 
 // function returning error text depending on error code
 NSString * errorText(VKError errCode);
@@ -158,7 +247,6 @@ NSString * errorText(VKError errCode);
     VKAVDecodeManager *_decodeManager;
     NSDictionary *_decodeOptions;
     VKDecoderState _decoderState;
-    BOOL _readyToApplyPlayingActions;
     
     //for controlling play/stop actions
     dispatch_queue_t _playStopQueue;
@@ -187,6 +275,8 @@ NSString * errorText(VKError errCode);
     NSString *_secret;
     
     id<VKPlayerControllerDelegate> _delegate;
+    
+    id<VKPlayerCustomIODelegate> _customIODelegate;
     
     VKScrollViewContainer *_scrollView;
 }
@@ -296,6 +386,23 @@ NSString * errorText(VKError errCode);
  */
 - (UIImage *)snapshot;
 
+/** Get snapshot from video stream in original size in UIImage format 
+ 
+ It's slower than getting snapshot from glview
+ 
+ Sample code to show how to save the snapshot
+ 
+ NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+ NSString *documentsDirectory = [paths objectAtIndex:0];
+ NSString *savedImagePath = [documentsDirectory stringByAppendingPathComponent:@"savedImage.png"];
+ UIImage *image = [self snapshot];
+ NSData *imageData = UIImagePNGRepresentation(image);
+ [imageData writeToFile:savedImagePath atomically:NO];
+ 
+ @return UIImage object
+ */
+- (UIImage *)snapshotOriginalSize;
+
 #ifdef VK_RECORDING_CAPABILITY
 
 /**
@@ -380,6 +487,9 @@ NSString * errorText(VKError errCode);
 ///Set your Parent View Controller as delegate If you want to be notified for state changes
 @property (nonatomic, assign) id<VKPlayerControllerDelegate> delegate;
 
+///Set your Parent View Controller as delegate If you want to be provide custom I/O data to ffmpeg, it's very useful when decoding a(n) audio/video stream in memory
+@property (nonatomic, assign) id<VKPlayerCustomIODelegate> customIODelegate;
+
 ///Specify YES to hide status bar, default is NO. Effective only in fullscreen presenting
 @property (nonatomic, assign, getter=isStatusBarHidden) BOOL statusBarHidden;
 
@@ -424,6 +534,15 @@ NSString * errorText(VKError errCode);
 
 ///Specify YES to fit video frames fill to the player view, default is NO
 @property (nonatomic, assign) BOOL fillScreen;
+
+///Specify YES to setup VideoKit AVAudioSession property also suitable for microphone capturing, default is NO. (this property is effectiveless in tvOS platform)
+@property (nonatomic, assign) BOOL allowsMicCapturing;
+
+///Specify YES to enable providing custom I/O data to ffmpeg, it's very useful when decoding a(n) audio/video stream in memory, default is NO
+@property (nonatomic, assign) BOOL enableCustomIO;
+
+///This is a helper struct for implementing custom IO feature. Please see the struct details for more info.
+@property (nonatomic, readonly) struct VKPlayerCustomIO *customIO;
 
 #ifdef VK_RECORDING_CAPABILITY
 ///Specify YES to enable recording functionality, default is NO

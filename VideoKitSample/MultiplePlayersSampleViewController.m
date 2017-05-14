@@ -30,7 +30,7 @@
     if (self) {
         // Custom initialization
         self.tabBarItem.title = @"Multi players";
-        self.tabBarItem.image = [UIImage imageNamed:@"vk-tabbar-icons-multi.png"];
+        self.tabBarItem.image = [UIImage imageNamed:@"vk-tabbar-icons-multi"];
         [self.tabBarItem setTitleTextAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
                                                  [UIColor colorWithRed:0.0 green:122.0/255.0 blue:1.0 alpha:1.0], NSForegroundColorAttributeName,
                                                  nil] forState:UIControlStateNormal];

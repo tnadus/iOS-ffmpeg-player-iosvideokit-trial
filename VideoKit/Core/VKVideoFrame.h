@@ -42,4 +42,7 @@
 ///Serial is used for identifying the packet queues of stream
 @property(nonatomic, assign) int serial;
 
+///States whether the frame is interlaced or not
+@property(nonatomic, assign) BOOL interlaced;
+
 @end

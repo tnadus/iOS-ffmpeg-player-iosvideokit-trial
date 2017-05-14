@@ -8,7 +8,7 @@
 //
 
 #if __has_feature(objc_arc)
-#error iOS VideoKit is Non-ARC only. Either turn off ARC for the project or use -fobjc-no-arc flag on source files (Targets -> Build Phases -> Compile Sources)
+#error iOS VideoKit is Non-ARC only. Either turn off ARC for the project or use fno-objc-arc flag on source files (Targets -> Build Phases -> Compile Sources)
 #endif
 
 #import "VKPlayerController.h"
@@ -84,6 +84,7 @@
 
     //Status bar properties
     BOOL _statusBarHiddenBefore;
+    BOOL _gotStreamDuration;
 }
 
 @property (nonatomic, retain) UIWindow *extWindow;
@@ -303,7 +304,7 @@
             _viewControlPanel.backgroundColor = [UIColor clearColor];
             
             UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleExtraLight];
-            UIVisualEffectView *blurEffectView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
+            UIVisualEffectView *blurEffectView = [[[UIVisualEffectView alloc] initWithEffect:blurEffect] autorelease];
             blurEffectView.translatesAutoresizingMaskIntoConstraints = NO;
             [_viewControlPanel addSubview:blurEffectView];
             
@@ -1187,8 +1188,7 @@ retry:
         [self setPanelButtonsEnabled:NO];
          _imgViewAudioOnly.hidden = YES;
         _labelStatusEmbedded.hidden = (_controlStyle == kVKPlayerControlStyleEmbedded) ? NO : YES;
-        _readyToApplyPlayingActions = NO;
-
+        
         _labelBarTitle.text = [self staturBarInitialText];
         _labelStatusEmbedded.text = _labelBarTitle.text;
         _labelBarEmbedded.text = [self barTitle];
@@ -1208,12 +1208,13 @@ retry:
     } else if (state == kVKDecoderStateConnected) {
         VKLog(kVKLogLevelStateChanges, @"Connected to the stream server");
     } else if (state == kVKDecoderStateInitialLoading) {
-        _readyToApplyPlayingActions = YES;
         VKLog(kVKLogLevelStateChanges, @"Trying to get packets");
     } else if (state == kVKDecoderStateReadyToPlay) {
         VKLog(kVKLogLevelStateChanges, @"Got enough packets to start playing");
         [_activityIndicator stopAnimating];
         [_activityIndicatorEmbedded stopAnimating];
+        
+        [self updateBarWithDurationState:(_gotStreamDuration ? kVKErrorNone : kVKErrorStreamDurationNotFound)];
 
         _labelBarTitle.text = [self barTitle];
         _labelBarEmbedded.text = _labelBarTitle.text;
@@ -1223,16 +1224,20 @@ retry:
     } else if (state == kVKDecoderStateBuffering) {
         VKLog(kVKLogLevelStateChanges, @"Buffering now...");
     } else if (state == kVKDecoderStatePlaying) {
-        _labelBarTitle.text = [self barTitle];
-        _labelBarEmbedded.text = _labelBarTitle.text;
-        VKLog(kVKLogLevelStateChanges, @"Playing now...");
-        [_buttonPanelPP setImage:[UIImage imageNamed:@"VKImages.bundle/vk-panel-button-pause.png"] forState:UIControlStateNormal];
-        [_buttonPanelPPEmbedded setImage:[UIImage imageNamed:@"VKImages.bundle/vk-panel-button-pause-embedded.png"] forState:UIControlStateNormal];
-        _labelStatusEmbedded.text = @"";
-        _labelStatusEmbedded.hidden = YES;
-        _labelElapsedTimeEmbedded.hidden = NO;
-        [self showControlPanel:YES willExpire:YES];
-        _snapshotReadyToGet = YES;
+        if (errCode == kVKErrorNoneReachedEndOfStream) {
+            VKLog(kVKLogLevelStateChanges, @"Player has reached end of stream ...");
+        } else {
+            _labelBarTitle.text = [self barTitle];
+            _labelBarEmbedded.text = _labelBarTitle.text;
+            VKLog(kVKLogLevelStateChanges, @"Playing now...");
+            [_buttonPanelPP setImage:[UIImage imageNamed:@"VKImages.bundle/vk-panel-button-pause.png"] forState:UIControlStateNormal];
+            [_buttonPanelPPEmbedded setImage:[UIImage imageNamed:@"VKImages.bundle/vk-panel-button-pause-embedded.png"] forState:UIControlStateNormal];
+            _labelStatusEmbedded.text = @"";
+            _labelStatusEmbedded.hidden = YES;
+            _labelElapsedTimeEmbedded.hidden = NO;
+            [self showControlPanel:YES willExpire:YES];
+            _snapshotReadyToGet = YES;
+        }
     } else if (state == kVKDecoderStatePaused) {
         VKLog(kVKLogLevelStateChanges, @"Paused now...");
         [_buttonPanelPP setImage:[UIImage imageNamed:@"VKImages.bundle/vk-panel-button-play.png"] forState:UIControlStateNormal];
@@ -1250,10 +1255,11 @@ retry:
                 _durationCurrent = _initialPlaybackTime;
             }
             [self startDurationTimer];
+            _gotStreamDuration = YES;
         } else {
+            _gotStreamDuration = NO;
             VKLog(kVKLogLevelDecoder, @"Stream duration error -> %@", errorText(errCode));
         }
-        [self updateBarWithDurationState:errCode];
     } else if (state == kVKDecoderStateGotAudioStreamInfo) {
         if (errCode != kVKErrorNone) {
             VKLog(kVKLogLevelStateChanges, @"Got audio stream error -> %@", errorText(errCode));
@@ -1271,7 +1277,6 @@ retry:
             [alert show];
         }
         
-        _readyToApplyPlayingActions = NO;
         _labelBarTitle.text = TR(@"Connection error");
         _labelStatusEmbedded.text = _labelBarTitle.text;
         _labelStatusEmbedded.hidden = (_controlStyle == kVKPlayerControlStyleEmbedded) ? NO : YES;
@@ -1285,7 +1290,6 @@ retry:
         [self updateBarWithDurationState:kVKErrorOpenStream];
         VKLog(kVKLogLevelStateChanges, @"Connection error - %@",errorText(errCode));
     } else if (state == kVKDecoderStateStoppedByUser) {
-        _readyToApplyPlayingActions = NO;
         [self stopElapsedTimer];
         [self stopDurationTimer];
         [self updateBarWithDurationState:kVKErrorStreamReadError];
@@ -1297,7 +1301,6 @@ retry:
 
         VKLog(kVKLogLevelStateChanges, @"Stopped now...");
     } else if (state == kVKDecoderStateStoppedWithError) {
-        _readyToApplyPlayingActions = NO;
         if (errCode == kVKErrorStreamReadError) {
             if (_controlStyle == kVKPlayerControlStyleFullScreen) {
                 NSString *title = TR(@"Error: Read error");
@@ -1459,6 +1462,9 @@ retry:
 - (void)dealloc {
 
     [[NSNotificationCenter defaultCenter] removeObserver:self];
+    
+    [_extWindow release];
+    [_extScreen release];
 
     [_imgSliderMin release];
     [_imgSliderMax release];
@@ -1472,11 +1478,16 @@ retry:
     [_toolBar release];
     [_viewControlPanelEmbedded release];
     [_viewBarEmbedded release];
-    [_imgViewAudioOnly release];
     [_imgViewExternalScreen release];
     
     [_closeInfoViewGestureRecognizer release];
     [_longGestureRecognizer release];
+    
+    if ([_timerPanelHidden isValid]) {
+        [_timerPanelHidden invalidate];
+    }
+    [_timerPanelHidden release];
+    _timerPanelHidden = nil;
     
     [super dealloc];
 }

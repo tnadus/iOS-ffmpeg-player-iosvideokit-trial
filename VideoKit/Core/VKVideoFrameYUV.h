@@ -14,12 +14,12 @@
 @interface VKVideoFrameYUV : VKVideoFrame
 
 ///VKColorPlane object that holds data for brightness of image for YUV format
-@property (nonatomic, assign) VKColorPlane *pLuma;
+@property (nonatomic, readonly) VKColorPlane *pLuma;
 
 ///VKColorPlane object that holds data for color of image for YUV format
-@property (nonatomic, assign) VKColorPlane *pChromaB;
+@property (nonatomic, readonly) VKColorPlane *pChromaB;
 
 ///VKColorPlane object that holds data for color of image for YUV format
-@property (nonatomic, assign) VKColorPlane *pChromaR;
+@property (nonatomic, readonly) VKColorPlane *pChromaR;
 
 @end

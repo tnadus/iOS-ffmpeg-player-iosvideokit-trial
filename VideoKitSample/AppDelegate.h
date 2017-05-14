@@ -21,6 +21,7 @@
 @class FullScreenSampleViewController;
 @class EmbeddedSampleViewController;
 @class MultiplePlayersSampleViewController;
+@class CustomIOSampleViewController;
 
 @interface AppDelegate : UIResponder <UIApplicationDelegate, EAIntroDelegate>
 
@@ -29,6 +30,7 @@
 @property (strong, nonatomic) FullScreenSampleViewController *channelListVc;
 @property (strong, nonatomic) EmbeddedSampleViewController *subviewDemoVc;
 @property (strong, nonatomic) MultiplePlayersSampleViewController *multiPlayersVc;
+@property (strong, nonatomic) CustomIOSampleViewController *customIOVc;
 @property (strong, nonatomic) UITabBarController *tabBarController;
 
 @end

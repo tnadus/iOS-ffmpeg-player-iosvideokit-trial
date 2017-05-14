@@ -47,7 +47,20 @@
  */
 - (void)addFlushPkt;
 
+/**
+ *  Adds an empty packet to queue
+*/
 - (void)addEmptyPkt;
+
+/**
+ *  Remove last pkt from queue
+ */
+- (void)removeLastPkt;
+
+/**
+ *  Remove pkt at index from queue
+ */
+- (void)removePktAtIndex:(unsigned int)index;
 
 /**
  *  Clear buffers

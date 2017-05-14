@@ -87,7 +87,7 @@
     Channel *chanEURONEWS = [Channel channelWithName:@"EURONEWS" addr:@"rtsp://ewns-hls-b-stream.hexaglobe.net/rtpeuronewslive/tr_vidan750_rtp.sdp" description:@"rtsp sample stream" localFile:NO options:[NSDictionary dictionaryWithObject:VKDECODER_OPT_VALUE_RTSP_TRANSPORT_TCP forKey:VKDECODER_OPT_KEY_RTSP_TRANSPORT]];
     [_streamList addObject:chanEURONEWS];
 
-    Channel *chanBloom = [Channel channelWithName:@"Bloomberg" addr:@"http://mn-l.mncdn.com/bloomberght/bloomberght2/radyodelisi.m3u8" description:@"http sample stream" localFile:NO options:NULL];
+    Channel *chanBloom = [Channel channelWithName:@"Bloomberg" addr:@"http://bloomtv.live-s.cdn.bitgravity.com/cdn-live-b5/_definst_/bloomtv/live/feed01/playlist.m3u8" description:@"http sample stream" localFile:NO options:NULL];
     [_streamList addObject:chanBloom];
 
     Channel *chanKids = [Channel channelWithName:@"Kids Cena Wiffle" addr:@"rtmp://flvideo.wwe.com/wwevideo/flv/kids/2008/october8-14/kids_cena_wiffle_large.flv" description:@"rtmp sample stream" localFile:NO options:NULL];
@@ -102,7 +102,7 @@
     Channel *chanPower = [Channel channelWithName:@"Power FM" addr:@"http://icast.powergroup.com.tr:80/PowerGymTonic/mpeg/128/home" description:@"http sample mp3 audio stream" localFile:NO options:NULL];
     [_streamList addObject:chanPower];
     
-    Channel *chanKitkat = [Channel channelWithName:@"Kitkat on dropbox" addr:@"https://dl.dropboxusercontent.com/u/6355786/kitkat.flv" description:@"https sample stream" localFile:NO options:@{VKDECODER_OPT_KEY_CACHE_STREAM_ENABLE: @(1)}];
+    Channel *chanKitkat = [Channel channelWithName:@"Kitkat on webserver" addr:@"http://elmadigital.net/test_videos/kitkat.flv" description:@"http sample file stream" localFile:NO options:@{VKDECODER_OPT_KEY_CACHE_STREAM_ENABLE: @(1)}];
     [_streamList addObject:chanKitkat];
     
     Channel *chanFake = [Channel channelWithName:@"Fake stream" addr:@"http://stream.fake.com" description:@"fake stream to test failure" localFile:NO options:NULL];

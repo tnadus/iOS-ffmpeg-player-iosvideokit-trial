@@ -209,6 +209,12 @@
 - (void)dealloc {
     [_urlString release];
     [_options release];
+    
+    [_username release];
+    [_secret release];
+    
+    [_barTitle release];
+    
     [_playerController release];
     [super dealloc];
 }

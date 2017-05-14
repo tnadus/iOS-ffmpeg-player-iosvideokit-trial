@@ -65,8 +65,10 @@ typedef NS_OPTIONS(NSUInteger, VKLogLevel) {
 #ifdef VK_RECORDING_CAPABILITY
     kVKLogLevelRecorder         = 1 << 6,
     kVKLogLevelAll              = 127,
+    kVKLogLevelAllWithFFMPEG    = 255,
 #else
     kVKLogLevelAll              = 63,
+    kVKLogLevelAllWithFFMPEG    = 127,
 #endif
 };
 
@@ -112,6 +114,32 @@ enum {
 };
 
 extern int av_usleep(unsigned usec);
+
+ /**
+ *  This is struct that holds all custom IO callbacks needed by ffmpeg. Default, this is already implemented and managed by the VKPlayerControllerBase.
+ */
+typedef struct VKDecoderCustomIO {
+    
+    /* required methods by ffmpeg */
+    
+    ///read data function pointer
+    int (*custom_io_read_data_cb)(void *opaque, uint8_t *buf, int buf_size);
+    
+    ///seeking functionality function pointer
+    int64_t (*custom_io_seek_cb)(void *opaque, int64_t offset, int whence);
+    
+    /* optional methods, helping for opening and closing connection */
+    
+    ///open stream function pointer, if implemented,then it must be return "0" for successful opening
+    int (*custom_io_open_cb)(void *opaque);
+    
+    ///close stream function pointer
+    void (*custom_io_close_cb)(void *opaque);
+    
+    ///holds custom data to carry between layers
+    void *opaque;
+    
+} VKDecoderCustomIO ;
 
 @protocol VKDecoderDelegate;
 
@@ -296,6 +324,13 @@ extern int av_usleep(unsigned usec);
  *  @param mediaType MediaType in AVMediaType enumerations
  */
 - (void)updateStreamInfoWithSelectedStreamIndex:(int)index type:(int)mediaType;
+ 
+/**
+* Get snapshot of video frame in original size in UIImage format
+*
+* @return UIImage object
+*/
+- (UIImage *)snapshot;
 
 #ifdef VK_RECORDING_CAPABILITY
 #pragma mark - Recording actions
@@ -487,6 +522,23 @@ extern int av_usleep(unsigned usec);
 
 ///Indicates the angle (in degrees) by which the transformation rotates the frame counterclockwise. The angle will be in range [-180.0, 180.0] (mostly used for portrait video)
 @property (nonatomic, readonly) double videoFramesAngle;
+        
+/**
+ * Set YES to pause RTSP realtime streams without sending a network message, default value is NO
+ *
+ * This property is useful when pause/play actions taken in a short time, otherwise, the buffers of client will be full
+ * and refuse the incoming packets which causes connection drop in the server side.
+ */
+@property (nonatomic, assign) BOOL enableTogglePauseWithoutSendingNetworkMsg;
+
+///Specify YES to enable providing custom I/O data to ffmpeg.
+@property (nonatomic, assign) BOOL enableCustomIO;
+        
+///This structure holds the requeired vars and methods to active using custom I/O in ffmpeg.
+@property (nonatomic, readonly) struct VKDecoderCustomIO *customIO;
+        
+///VideoDecoder starts dropping video frames if the latency between Audio and Video frames or External clock and Video frames is higher than this value. Default is 0.3f (defined with VK_FF_DROP_VIDEO_FRAME_MAX_LATENCY)
+@property (nonatomic, assign) float maxLatencyToDropVideoFrames;
 
 @end
 

@@ -14,6 +14,6 @@
 @interface VKVideoFrameRGB : VKVideoFrame
 
 ///VKColorPlane object that holds data for Red, Green, Blue colors of image for RGB
-@property (nonatomic, assign) VKColorPlane *pRGB;
+@property (nonatomic, readonly) VKColorPlane *pRGB;
 
 @end

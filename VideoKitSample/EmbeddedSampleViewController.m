@@ -30,7 +30,7 @@
     if (self) {
         // Custom initialization
         self.tabBarItem.title = @"Embedded";
-        self.tabBarItem.image = [UIImage imageNamed:@"vk-tabbar-icons-embedded.png"];
+        self.tabBarItem.image = [UIImage imageNamed:@"vk-tabbar-icons-embedded"];
         [self.tabBarItem setTitleTextAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
                                                      [UIColor colorWithRed:0.0 green:122.0/255.0 blue:1.0 alpha:1.0], NSForegroundColorAttributeName,
                                                      nil] forState:UIControlStateNormal];
@@ -200,6 +200,7 @@
 }
 
 - (void)dealloc {
+    [_player release];
     [_imgViewScreen release];
     [_tableView release];
     [super dealloc];

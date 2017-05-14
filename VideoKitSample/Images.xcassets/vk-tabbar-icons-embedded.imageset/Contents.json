@@ -2,13 +2,12 @@
   "images" : [
     {
       "idiom" : "universal",
-      "scale" : "1x",
-      "filename" : "vk-tabbar-icons-embedded.png"
+      "scale" : "1x"
     },
     {
       "idiom" : "universal",
-      "scale" : "2x",
-      "filename" : "vk-tabbar-icons-embedded@2x.png"
+      "filename" : "vk-tabbar-icons-embedded@2x.png",
+      "scale" : "2x"
     },
     {
       "idiom" : "universal",

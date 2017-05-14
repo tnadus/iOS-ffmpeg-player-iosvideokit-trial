@@ -26,13 +26,15 @@
 
 #include "cmdutils.h"
 
-#define TRIAL                            1
+#define TRIAL                            @"trial_enabled"
 
-#define VK_CLIENT_VERSION                @"2.6"
+#define VK_CLIENT_VERSION                @"2.7"
 
 ///Video Stream Error enumerations
 typedef enum {
+    kVKErrorInvalidValue = -1,
     kVKErrorNone = 0,
+    kVKErrorNoneReachedEndOfStream,
     kVKErrorUnsupportedProtocol,
     kVKErrorStreamURLParseError,
     kVKErrorOpenStream,

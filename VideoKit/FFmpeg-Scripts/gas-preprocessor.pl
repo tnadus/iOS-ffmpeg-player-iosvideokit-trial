@@ -16,6 +16,7 @@ my %canonical_arch = ("aarch64" => "aarch64", "arm64" => "aarch64",
 
 my %comments = ("aarch64" => '//',
                 "arm"     => '@',
+                "ppc"     => '#',
                 "powerpc" => '#');
 
 my @gcc_cmd;
@@ -34,7 +35,7 @@ my $usage_str = "
 $0\n
 Gas-preprocessor.pl converts assembler files using modern GNU as syntax for
 Apple's ancient gas version or clang's incompatible integrated assembler. The
-conversion is regularly tested for Libav, x264 and vlc. Other projects might
+conversion is regularly tested for FFmpeg, Libav, x264 and vlc. Other projects might
 use different features which are not correctly handled.
 
 Options for this program needs to be separated with ' -- ' from the assembler
@@ -66,7 +67,7 @@ while (@ARGV) {
         die "unknown arch: '$arch'\n" if not exists $canonical_arch{$arch};
     } elsif ($opt eq "-as-type") {
         $as_type = shift;
-        die "unknown as type: '$as_type'\n" if $as_type !~ /^((apple-)?(gas|clang)|armasm)$/;
+        die "unknown as type: '$as_type'\n" if $as_type !~ /^((apple-)?(gas|clang|llvm_gcc)|armasm)$/;
     } elsif ($opt eq "-help") {
         usage();
         exit 0;

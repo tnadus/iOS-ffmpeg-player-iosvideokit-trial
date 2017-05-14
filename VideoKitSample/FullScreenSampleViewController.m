@@ -24,7 +24,7 @@
         // Custom initialization
         self.title = @"Fullscreen Sample";
         self.tabBarItem.title = @"Fullscreen";
-        self.tabBarItem.image = [UIImage imageNamed:@"vk-tabbar-icons-fullscreen.png"];
+        self.tabBarItem.image = [UIImage imageNamed:@"vk-tabbar-icons-fullscreen"];
         [self.tabBarItem setTitleTextAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
                                                  [UIColor colorWithRed:0.0 green:122.0/255.0 blue:1.0 alpha:1.0], NSForegroundColorAttributeName,
                                                  nil] forState:UIControlStateNormal];
@@ -171,6 +171,9 @@
     } else if (state == kVKDecoderStateReadyToPlay) {
     } else if (state == kVKDecoderStateBuffering) {
     } else if (state == kVKDecoderStatePlaying) {
+        if (errCode == kVKErrorNoneReachedEndOfStream) {
+        } else {
+        }
     } else if (state == kVKDecoderStatePaused) {
     } else if (state == kVKDecoderStateStoppedByUser) {
     } else if (state == kVKDecoderStateConnectionFailed) {

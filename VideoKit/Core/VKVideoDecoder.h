@@ -84,6 +84,13 @@ extern NSString *kVKVideoFrame;
  */
 - (int)decodeVideo;
 
+/**
+ * Get snapshot of video frame in original size in UIImage format
+ *
+ * @return UIImage object
+ */
+- (UIImage *)snapshot;
+
 /// A Boolean that indicates whether if the decode process is done not not, used for managing threads
 @property (nonatomic, readonly) BOOL decodeJobIsDone;
 

@@ -11,6 +11,7 @@
 #import "FullScreenSampleViewController.h"
 #import "EmbeddedSampleViewController.h"
 #import "MultiplePlayersSampleViewController.h"
+#import "CustomIOSampleViewController.h"
 
 #define WRITE_LOGS_TO_FILE         0
 
@@ -21,9 +22,12 @@
 @synthesize tabBarController = _tabBarController;
 @synthesize subviewDemoVc = _subviewDemoVc;
 @synthesize multiPlayersVc = _multiPlayersVc;
+@synthesize customIOVc = _customIOVc;
 
 - (void)dealloc
 {
+    [_customIOVc release];
+    [_subviewDemoVc release];
     [_multiPlayersVc release];
     [_channelListVc release];
     [_navbarFSSampleVc release];
@@ -53,8 +57,9 @@
 
     self.subviewDemoVc = [[[EmbeddedSampleViewController alloc] initWithNibName:@"EmbeddedSampleViewController" bundle:nil] autorelease];
     self.multiPlayersVc = [[[MultiplePlayersSampleViewController alloc] initWithNibName:@"MultiplePlayersSampleViewController" bundle:nil] autorelease];
+    self.customIOVc = [[[CustomIOSampleViewController alloc] initWithNibName:@"CustomIOSampleViewController" bundle:nil] autorelease];
 
-    self.tabBarController.viewControllers = [NSArray arrayWithObjects:_navbarFSSampleVc, _subviewDemoVc, _multiPlayersVc,nil];
+    self.tabBarController.viewControllers = [NSArray arrayWithObjects:_navbarFSSampleVc, _subviewDemoVc, _multiPlayersVc, _customIOVc, nil];
     self.window.rootViewController = self.tabBarController;
     [self addIntroView:NO];
     [self.window makeKeyAndVisible];
@@ -83,11 +88,16 @@
     page3.titleImage = [UIImage imageNamed:@"intro-screen-3"];
     
     EAIntroPage *page4 = [EAIntroPage page];
-    page4.title = @"Questions";
-    page4.desc = @"You can find the documentation in documentation folder, for further support you can e-mail : support@iosvideokit.com";
-    page4.titleImage = [UIImage imageNamed:@"intro-screen-4"];
+    page4.title = @"Custom IO";
+    page4.desc = @"It's possible to provide your custom audio/video stream data to VideoKit, no need to provide a file or network url. Just give your data in memory! (please see CustomIOSampleViewController.m for more info.)";
+    page4.titleImage = [UIImage imageNamed:@"intro-screen-5"];
     
-    EAIntroView *intro = [[EAIntroView alloc] initWithFrame:self.window.bounds andPages:@[page1,page2,page3,page4]];
+    EAIntroPage *page5 = [EAIntroPage page];
+    page5.title = @"Questions";
+    page5.desc = @"You can find the documentation in documentation folder, for further support you can e-mail : support@iosvideokit.com";
+    page5.titleImage = [UIImage imageNamed:@"intro-screen-4"];
+    
+    EAIntroView *intro = [[EAIntroView alloc] initWithFrame:self.window.bounds andPages:@[page1,page2,page3,page4,page5]];
     intro.bgImage = [UIImage imageNamed:@"introBg"];
     [intro setDelegate:self];
     [intro showInView:self.tabBarController.view animateDuration:0.0];

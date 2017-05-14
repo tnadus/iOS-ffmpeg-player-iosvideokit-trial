@@ -42,12 +42,15 @@ NSString *kVKPlayerWillExitFullscreenNotification = @"VKPlayerWillExitFullscreen
 NSString *kVKPlayerDidExitFullscreenNotification = @"VKPlayerDidExitFullscreenNotification";
 
 
+//Custom IO callback methods implementation to provide data to ffmpeg
+static int custom_io_open_cb(void *opaque);
+static int custom_io_read_cb(void *opaque, uint8_t *buf, int buf_size);
+static int64_t custom_io_seek_cb(void *opaque, int64_t offset, int whence);
+static void custom_io_close_cb(void *opaque);
+
 @interface VKPlayerControllerBase ()<VKDecoderDelegate> {
     
 }
-
-@property (nonatomic, retain) UIWindow *extWindow;
-@property (nonatomic, retain) UIScreen *extScreen;
 
 @end
 
@@ -65,9 +68,13 @@ NSString *kVKPlayerDidExitFullscreenNotification = @"VKPlayerDidExitFullscreenNo
 @synthesize allowsAirPlay = _allowsAirPlay;
 @synthesize showPictureOnInitialBuffering = _showPictureOnInitialBuffering;
 @synthesize delegate = _delegate;
+@synthesize customIODelegate = _customIODelegate;
 @synthesize scrollView = _scrollView;
 @synthesize renderView = _renderView;
 @synthesize backgroundColor = _backgroundColor;
+@synthesize allowsMicCapturing = _allowsMicCapturing;
+@synthesize customIO = _customIO;
+
 #ifdef VK_RECORDING_CAPABILITY
 @synthesize recordingEnabled = _recordingEnabled;
 #endif
@@ -86,7 +93,6 @@ NSString *kVKPlayerDidExitFullscreenNotification = @"VKPlayerDidExitFullscreenNo
         _loopPlayback = 1;
         _allowsAirPlay = NO;
         _showPictureOnInitialBuffering = NO;
-        _readyToApplyPlayingActions = NO;
         
         _playStopQueue = dispatch_queue_create("play_stop_lock", NULL);
         
@@ -106,6 +112,9 @@ NSString *kVKPlayerDidExitFullscreenNotification = @"VKPlayerDidExitFullscreenNo
         _backgroundColor = [[UIColor blackColor] retain];
         
         _staturBarInitialText = [TR(@"Loading...") retain];
+        
+        _customIO = malloc(sizeof(VKPlayerCustomIO));
+        memset(_customIO, 0, sizeof(VKPlayerCustomIO));
         
         return self;
     }
@@ -133,8 +142,11 @@ NSString *kVKPlayerDidExitFullscreenNotification = @"VKPlayerDidExitFullscreenNo
     }
     _contentURLString = [urlString retain];
     
-    if ([urlString lastPathComponent])
+    if ([urlString lastPathComponent]) {
+        [_streamName release];
+        _streamName = nil;
         _streamName = [[urlString lastPathComponent] retain];
+    }
 }
 
 - (NSString *)barTitle {
@@ -156,7 +168,7 @@ NSString *kVKPlayerDidExitFullscreenNotification = @"VKPlayerDidExitFullscreenNo
     
     NSDictionary *metricsImgViewAudioOnly = @{@"imgview_audioonly_height": @(hAudioOnly), @"imgview_audioonly_width": @(wAudioOnly)};
 
-    _imgViewAudioOnly = [[UIImageView alloc] initWithFrame:CGRectZero];
+    _imgViewAudioOnly = [[[UIImageView alloc] initWithFrame:CGRectZero] autorelease];
     _imgViewAudioOnly.contentMode = UIViewContentModeScaleAspectFit;
     _imgViewAudioOnly.hidden = YES;
     _imgViewAudioOnly.opaque = NO;
@@ -363,6 +375,23 @@ NSString *kVKPlayerDidExitFullscreenNotification = @"VKPlayerDidExitFullscreenNo
                 _decodeManager.volumeLevel = 0.0;
             _decodeManager.delegate = self;
             
+            if (_decodeOptions && [_decodeOptions objectForKey:VKDECODER_OPT_KEY_HW_ACCEL_DISABLED_AUDIO]) {
+                [_decodeManager setUseHWAcceleratedAudioDecoders:NO];
+            }
+            
+            if (_decodeOptions && [_decodeOptions objectForKey:VKDECODER_OPT_KEY_HW_ACCEL_DISABLED_VIDEO]) {
+                [_decodeManager setUseHWAcceleratedVideoDecoders:NO];
+            }
+            
+            if (_enableCustomIO) {
+                _decodeManager.enableCustomIO = _enableCustomIO;
+                _decodeManager.customIO->custom_io_read_data_cb = &custom_io_read_cb;
+                _decodeManager.customIO->custom_io_seek_cb = &custom_io_seek_cb;
+                _decodeManager.customIO->custom_io_open_cb = &custom_io_open_cb;
+                _decodeManager.customIO->custom_io_close_cb = &custom_io_close_cb;
+                _decodeManager.customIO->opaque = self;
+            }
+            
             //extra parameters
             _decodeManager.avPacketCountLogFrequency = 0.01;
             [_decodeManager setLogLevel:kVKLogLevelStateChanges];
@@ -402,10 +431,23 @@ NSString *kVKPlayerDidExitFullscreenNotification = @"VKPlayerDidExitFullscreenNo
                         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(interruption:) name:AVAudioSessionInterruptionNotification object:nil];
                         
                         NSError *error;
+#if !TARGET_OS_TV
+                        if (_allowsMicCapturing == YES) {
+                            if(![audioSession setCategory:AVAudioSessionCategoryPlayAndRecord withOptions:AVAudioSessionCategoryOptionMixWithOthers | AVAudioSessionCategoryOptionDefaultToSpeaker error:&error]) {
+                                VKLog(kVKLogLevelDecoder, @"Error: Audio Session category could not be set: %@", error.localizedDescription);
+                            }
+                        } else {
+                            //Playback
+                            if(![audioSession setCategory:AVAudioSessionCategoryPlayback error:&error]) {
+                                VKLog(kVKLogLevelDecoder, @"Error: Audio Session category could not be set: %@", error.localizedDescription);
+                            }
+                        }
+#else
+                        //Playback
                         if(![audioSession setCategory:AVAudioSessionCategoryPlayback error:&error]) {
                             VKLog(kVKLogLevelDecoder, @"Error: Audio Session category could not be set: %@", error.localizedDescription);
                         }
-                        
+#endif
                         NSTimeInterval preferredBufferDuration = .005;
                         if (![audioSession setPreferredIOBufferDuration: preferredBufferDuration error: &error]) {
                             VKLog(kVKLogLevelDecoder, @"Error: Audio Session prefered buffer duration could not be set: %@", error.localizedDescription);
@@ -474,7 +516,7 @@ NSString *kVKPlayerDidExitFullscreenNotification = @"VKPlayerDidExitFullscreenNo
                 activePlayerCount--;
             }
             
-            if (!activePlayerCount) {
+            if (!_allowsMicCapturing && !activePlayerCount) {
                 NSError *error;
                 BOOL err = [[AVAudioSession sharedInstance] setActive:NO error:&error];
                 if (!err) VKLog(kVKLogLevelDecoder, @"AudioSession error: %@, code: %ld", error.domain, (long)error.code);
@@ -563,6 +605,10 @@ NSString *kVKPlayerDidExitFullscreenNotification = @"VKPlayerDidExitFullscreenNo
     return [_renderView snapshot];
 }
 
+- (UIImage *)snapshotOriginalSize {
+    return [_decodeManager snapshot];
+}
+
 - (void)setFillScreen:(BOOL)value {
     _fillScreen = value;
     [_renderView setFillScreen:_fillScreen];
@@ -639,6 +685,42 @@ NSString *kVKPlayerDidExitFullscreenNotification = @"VKPlayerDidExitFullscreenNo
     // implemented in subclass
 }
 
+#pragma mark - VKCustomIO delegate methods
+
+- (int)ioStreamRead:(uint8_t *)data size:(int)size {
+    
+    if ([_customIODelegate respondsToSelector:@selector(player:ioStreamRead:size:)]) {
+        return [_customIODelegate player:self ioStreamRead:data size:size];
+    }
+    
+    return kVKErrorInvalidValue;
+}
+
+- (int64_t)ioStreamSeek:(uint64_t)offset whence:(int)whence {
+    
+    if ([_customIODelegate respondsToSelector:@selector(player:ioStreamSeek:whence:)]) {
+        return [_customIODelegate player:self ioStreamSeek:offset whence:whence];
+    }
+    
+    return kVKErrorInvalidValue;
+}
+
+- (VKError)ioStreamOpen {
+    
+    if ([_customIODelegate respondsToSelector:@selector(ioStreamOpenForPlayer:)]) {
+        return [_customIODelegate ioStreamOpenForPlayer:self];
+    }
+    
+    return kVKErrorNone;
+}
+
+- (void)ioStreamClose {
+    
+    if ([_customIODelegate respondsToSelector:@selector(ioStreamCloseForPlayer:)]) {
+        [_customIODelegate ioStreamCloseForPlayer:self];
+    }
+}
+
 #pragma mark - External Screen Management (Cable & Airplay)
 
 - (void)screenDidChange:(NSNotification *)notification {
@@ -663,6 +745,9 @@ NSString *kVKPlayerDidExitFullscreenNotification = @"VKPlayerDidExitFullscreenNo
     
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     
+    [_username release];
+    [_secret release];
+    
     [_staturBarInitialText release];
     [_barTitle release];
     [_decodeOptions release];
@@ -675,7 +760,23 @@ NSString *kVKPlayerDidExitFullscreenNotification = @"VKPlayerDidExitFullscreenNo
 
     [_view release];
     [_contentURLString release];
-    VKLog(kVKLogLevelStateChanges, @"VKPlayerController is deallocated - no more state changes captured...");
+    [_streamName release];
+    
+    dispatch_release(_playStopQueue);
+    
+    free(_customIO);
+    _customIO = NULL;
+    
+    if (_decodeManager && [_decodeManager delegate] != NULL) {
+        VKLog(kVKLogLevelStateChanges,
+              @"\n\n"
+              "***************************************************************************** \n"
+              "** Important: VKPlayerController is deallocated in an unexpected way!!!    ** \n"
+              "** Please see the \"HOW TO USE\" section in documentation for help           ** \n"
+              "***************************************************************************** \n");
+    } else {
+        VKLog(kVKLogLevelStateChanges, @"VKPlayerController is deallocated gracefully - no more state changes captured...");
+    }
     
     [super dealloc];
 }
@@ -688,8 +789,15 @@ NSString *kVKPlayerDidExitFullscreenNotification = @"VKPlayerDidExitFullscreenNo
 NSString * errorText(VKError errCode)
 {
     switch (errCode) {
+            
+        case kVKErrorInvalidValue:
+            return TR(@"Invalid value received");
+            
         case kVKErrorNone:
             return @"";
+            
+        case kVKErrorNoneReachedEndOfStream:
+            return @"Reached EOF";
             
         case kVKErrorUnsupportedProtocol:
             return TR(@"Protocol is not supported");
@@ -755,4 +863,48 @@ NSString * errorText(VKError errCode)
             return TR(@"End of stream");
     }
     return nil;
+}
+
+#pragma mark - Custom IO callback methods
+
+static int custom_io_read_cb(void *opaque, uint8_t *buf, int len) {
+    
+    VKPlayerControllerBase *player = (__bridge VKPlayerControllerBase *)opaque;
+    if (player) {
+        return [player ioStreamRead:buf size:len];
+    }
+    
+    return kVKErrorInvalidValue;
+}
+
+static int64_t custom_io_seek_cb(void *opaque, int64_t offset, int whence) {
+    
+    VKPlayerControllerBase *player = (__bridge VKPlayerControllerBase *)opaque;
+    if (player) {
+        
+        if (whence == AVSEEK_SIZE) {
+            return player.customIO->customIOSize;
+        }
+        return [player ioStreamSeek:offset whence:whence];
+    }
+    
+    return kVKErrorInvalidValue;
+}
+
+static int custom_io_open_cb(void *opaque) {
+    
+    VKPlayerControllerBase *player = (__bridge VKPlayerControllerBase *)opaque;
+    if (player) {
+        return [player ioStreamOpen];
+    }
+    
+    return kVKErrorNone;
+}
+
+static void custom_io_close_cb(void *opaque) {
+    
+    VKPlayerControllerBase *player = (__bridge VKPlayerControllerBase *)opaque;
+    if (player) {
+        [player ioStreamClose];
+    }
 }

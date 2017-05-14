@@ -80,14 +80,14 @@
 }
 
 - (void)buildBackgroundImage {
-    self.bgImageView = [[UIImageView alloc] initWithFrame:self.frame];
+    self.bgImageView = [[[UIImageView alloc] initWithFrame:self.frame] autorelease];
     self.bgImageView.backgroundColor = [UIColor clearColor];
     self.bgImageView.contentMode = UIViewContentModeScaleToFill;
     self.bgImageView.autoresizesSubviews = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
     self.bgImageView.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
     [self addSubview:self.bgImageView];
     
-    self.pageBgBack = [[UIImageView alloc] initWithFrame:self.frame];
+    self.pageBgBack = [[[UIImageView alloc] initWithFrame:self.frame] autorelease];
     self.pageBgBack.backgroundColor = [UIColor clearColor];
     self.pageBgBack.contentMode = UIViewContentModeScaleToFill;
     self.pageBgBack.autoresizesSubviews = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
@@ -95,7 +95,7 @@
     self.pageBgBack.alpha = 0;
     [self addSubview:self.pageBgBack];
     
-    self.pageBgFront = [[UIImageView alloc] initWithFrame:self.frame];
+    self.pageBgFront = [[[UIImageView alloc] initWithFrame:self.frame] autorelease];
     self.pageBgFront.backgroundColor = [UIColor clearColor];
     self.pageBgFront.contentMode = UIViewContentModeScaleToFill;
     self.pageBgFront.autoresizesSubviews = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
@@ -106,7 +106,7 @@
 
 - (void)buildScrollViewWithFrame:(CGRect)frame {
     
-    self.scrollView = [[UIScrollView alloc] initWithFrame:self.frame];
+    self.scrollView = [[[UIScrollView alloc] initWithFrame:self.frame] autorelease];
     
     self.scrollView.pagingEnabled = YES;
     self.scrollView.showsHorizontalScrollIndicator = NO;
@@ -139,7 +139,7 @@
 
 - (UIView *)viewForPage:(EAIntroPage *)page atXIndex:(CGFloat *)xIndex {
     
-    UIView *pageView = [[UIView alloc] initWithFrame:CGRectMake(*xIndex, 0, self.scrollView.frame.size.width, self.scrollView.frame.size.height)];
+    UIView *pageView = [[[UIView alloc] initWithFrame:CGRectMake(*xIndex, 0, self.scrollView.frame.size.width, self.scrollView.frame.size.height)] autorelease];
     
     *xIndex += self.scrollView.frame.size.width;
     
@@ -149,7 +149,7 @@
     }
     
     if(page.titleImage) {
-        UIImageView *titleImageView = [[UIImageView alloc] initWithImage:page.titleImage];
+        UIImageView *titleImageView = [[[UIImageView alloc] initWithImage:page.titleImage] autorelease];
         CGRect rect1 = titleImageView.frame;
         rect1.origin.x = (self.scrollView.frame.size.width - rect1.size.width)/2;
         rect1.origin.y = page.imgPositionY;
@@ -161,7 +161,7 @@
         CGFloat titleHeight;
         
         if ([page.title respondsToSelector:@selector(boundingRectWithSize:options:attributes:context:)]) {
-            NSAttributedString *attributedText = [[NSAttributedString alloc] initWithString:page.title attributes:@{ NSFontAttributeName: page.titleFont }];
+            NSAttributedString *attributedText = [[[NSAttributedString alloc] initWithString:page.title attributes:@{ NSFontAttributeName: page.titleFont }] autorelease];
             CGRect rect = [attributedText boundingRectWithSize:(CGSize){self.scrollView.frame.size.width - 20, CGFLOAT_MAX} options:NSStringDrawingUsesLineFragmentOrigin context:nil];
             titleHeight = ceilf(rect.size.height);
         } else {
@@ -173,7 +173,7 @@
         
         CGRect titleLabelFrame = CGRectMake(10, self.frame.size.height - page.titlePositionY, self.scrollView.frame.size.width - 20, titleHeight);
         
-        UILabel *titleLabel = [[UILabel alloc] initWithFrame:titleLabelFrame];
+        UILabel *titleLabel = [[[UILabel alloc] initWithFrame:titleLabelFrame] autorelease];
         titleLabel.text = page.title;
         titleLabel.font = page.titleFont;
         titleLabel.textColor = page.titleColor;
@@ -186,7 +186,7 @@
     if([page.desc length]) {
         CGRect descLabelFrame = CGRectMake(0, self.frame.size.height - page.descPositionY, self.scrollView.frame.size.width, 500);
         
-        UITextView *descLabel = [[UITextView alloc] initWithFrame:descLabelFrame];
+        UITextView *descLabel = [[[UITextView alloc] initWithFrame:descLabelFrame] autorelease];
         descLabel.text = page.desc;
         descLabel.scrollEnabled = NO;
         descLabel.font = page.descFont;
@@ -202,7 +202,7 @@
 }
 
 - (void)appendCloseViewAtXIndex:(CGFloat*)xIndex {
-    UIView *closeView = [[UIView alloc] initWithFrame:CGRectMake(*xIndex, 0, self.frame.size.width, self.frame.size.height)];
+    UIView *closeView = [[[UIView alloc] initWithFrame:CGRectMake(*xIndex, 0, self.frame.size.width, self.frame.size.height)] autorelease];
     closeView.tag = 124;
     [self.scrollView addSubview:closeView];
     
@@ -219,19 +219,19 @@
 }
 
 - (void)buildFooterView {
-    self.pageControl = [[UIPageControl alloc] initWithFrame:CGRectMake(0, self.frame.size.height - self.pageControlY, self.frame.size.width, 20)];
+    self.pageControl = [[[UIPageControl alloc] initWithFrame:CGRectMake(0, self.frame.size.height - self.pageControlY, self.frame.size.width, 20)] autorelease];
     [self.pageControl setAutoresizingMask:UIViewAutoresizingFlexibleWidth];
     [self.pageControl addTarget:self action:@selector(showPanelAtPageControl) forControlEvents:UIControlEventValueChanged];
     self.pageControl.numberOfPages = _pages.count;
     [self addSubview:self.pageControl];
     
-    self.skipButton = [[UIButton alloc] initWithFrame:CGRectMake(self.scrollView.frame.size.width - 80, self.pageControl.frame.origin.y - 10.0, 80, self.pageControl.frame.size.height + 20.0)];
+    self.skipButton = [[[UIButton alloc] initWithFrame:CGRectMake(self.scrollView.frame.size.width - 80, self.pageControl.frame.origin.y - 10.0, 80, self.pageControl.frame.size.height + 20.0)] autorelease];
     [self.skipButton setAutoresizingMask: UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin];
     [self.skipButton setTitle:NSLocalizedString(@"Skip", nil) forState:UIControlStateNormal];
     [self.skipButton addTarget:self action:@selector(skipIntroduction) forControlEvents:UIControlEventTouchUpInside];
     [self addSubview:self.skipButton];
     
-    self.dontShowButton = [[UIButton alloc] initWithFrame:CGRectMake(0.0, self.pageControl.frame.origin.y - 10.0, 100, self.pageControl.frame.size.height + 20.0)];
+    self.dontShowButton = [[[UIButton alloc] initWithFrame:CGRectMake(0.0, self.pageControl.frame.origin.y - 10.0, 100, self.pageControl.frame.size.height + 20.0)] autorelease];
     
     [self.dontShowButton setAutoresizingMask: UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin];
     [self.dontShowButton setTitle:NSLocalizedString(@"Don't show", nil) forState:UIControlStateNormal];
