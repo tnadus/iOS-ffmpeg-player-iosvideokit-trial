@@ -73,9 +73,10 @@ All public classes of iOS VideoKit are fully documented. See the [Technical Docu
 ![screenshot 3](http://iosvideokit.com/wp-content/uploads/2013/12/vk-ss-embedded-playing.jpg)
 ![screenshot 4](http://iosvideokit.com/wp-content/uploads/2013/12/vk-ss-embedded-ipcams.jpg)
 ![screenshot 5](http://iosvideokit.com/wp-content/uploads/2013/12/vk-ss-multi-playing.jpg)
-![screenshot 6]((http://iosvideokit.com/wp-content/uploads/2015/06/vk-ss-record2.jpg)
+![screenshot 6](http://iosvideokit.com/wp-content/uploads/2015/06/vk-ss-record2.jpg)
 ![screenshot 7](http://iosvideokit.com/wp-content/uploads/2015/06/vk-ss-ss.jpg)
-![screenshot 8](http://iosvideokit.com/wp-content/uploads/2013/12/vk-ss-fs-landscape3.jpg)
+![screenshot 8](http://iosvideokit.com/wp-content/uploads/2015/06/vk-ss-record.jpg)
+![screenshot 9](http://iosvideokit.com/wp-content/uploads/2013/12/vk-ss-fs-landscape3.jpg)
 
 
 
