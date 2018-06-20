@@ -61,7 +61,7 @@ Note: The trial version is same as the paid one, except trial has logo on screen
 
 
 #Documentation
-For features, integration, usage and some important notes please see [docs](http://iosvideokit.com/documentation/)
+For features, integration, usage and some important notes please see [docs](https://iosvideokit.com/documentation/)
 
 All public classes of iOS VideoKit are fully documented. See the [Technical Documentation](http://iosvideokit.com/VKAppleDoc/html) for further information.
 
